@@ -4,9 +4,9 @@
 
 ## Артефакты и таблица
 
-Analysis собирает COMPLETE runs, проверяет обязательные файлы, hashes/seed/дубликаты. LR search, технические проверки и незавершённые попытки исключены из итоговой таблицы; поисковые результаты собираются отдельно. Test predictions имеют одинаковые ID/labels/order; одной длины недостаточно. Неполные серии помечены.
+Analysis собирает COMPLETE runs, проверяет schema_version=1, stage/status, обязательные файлы, hashes/seed/дубликаты. Валидный search COMPLETE не равен final COMPLETE; сверяем назначение стадии и полноту её артефактов. numerical_invalid/technical_failed/interrupted остаются в поисковой истории с причинами, но без вымышленных финальных чисел. LR search, технические проверки и незавершённые попытки исключены из итоговой таблицы; поисковые результаты собираются отдельно. Test predictions имеют одинаковые ID/labels/order; одной длины недостаточно. Неполные серии помечены.
 
-| Метод | Trainable params | Test acc, % mean±std | Δ к LP, п.п. | Train+val, мин | Test, мин | Peak allocated/reserved, GiB | Adapter/head, MB |
+| Метод | Trainable params | Test acc, % mean±std | Δ к LP, п.п. | Train+val, мин | Test, мин | Peak train+val allocated/reserved, GiB | Adapter/head, MB |
 | --- | ---: | --- | --- | --- | --- | --- | --- |
 | LP | 77 669 | | | | | | |
 | A-iso | 1 552 229 | | | | | | |
@@ -15,7 +15,11 @@ Analysis собирает COMPLETE runs, проверяет обязательн
 
 Sample std ddof=1 по seed 42/43/44; также все отдельные значения/парные разницы. Δ к LP — разница методов, не прирост после LP checkpoint. LP и A/M/B получают одинаковый LR search: три значения {1e-4,1e-3,1e-2}, seed 142, пять эпох. Это лучшие настройки в ограниченной общей сетке, не доказанный оптимум методов. В отдельной таблице показываем все 12 поисковых конфигураций, их статусы, причины невалидности и случаи выбора границы сетки. Низкую accuracy валидных проб/final не исключаем.
 
-Val-2020 accuracy, best epoch, LR/history отдельно. Val использована для выбора, независимым подтверждением test не является. Стоимость агрегируем внутри одинаковых GPU/профилей. Setup/sync/retries отдельно. Перед замером времени CUDA synchronize, peak stats сбрасываем после подготовки модели до train; границы указаны. Test memory/time отдельно. Размеры фактические, dtype/head явно указаны. Full LP checkpoint не сравниваем с одним LoRA adapter.
+Val-2020 accuracy, best epoch, выбранный LR, attempted/applied/skipped updates, history и отдельные test peaks идут в дополнительную таблицу. Для точных accuracy храним correct_count/sample_count, округляем только presentation. Test fields у technical/lr_search — null, не 0. MB=10^6 bytes, GiB=2^30 bytes. Export dtype FP32 safetensors; LoRA export включает classifier, LP export только head. Full LP resume и один LoRA adapter по размеру не сравниваем.
+
+Стоимость агрегируем только внутри одинаковых GPU/math/batch/workers/CPU/disk/cache профилей. Job wall содержит train+val+сохранения/синхронизацию; val/save/sync интервалы отдельно, train_loop_residual — job за вычетом этих интервалов, с включённым чтением/логированием. Setup/download/retries и test отдельно. На границах CUDA synchronize. Peak allocated/reserved training job включает периодическую val, измеряется одним reset после подготовки модели, без вложенных reset Trainer; test — свежий процесс без optimizer, отдельный peak. Смешанный hardware resume исключаем из рейтинга стоимости, в accuracy учитываем с metadata и оговоркой. Если одинаковых условий нет, показываем реальные затраты с оборудованием без строгого рейтинга.
+
+Predictions из best: model.eval()+inference_mode, детерминированные transforms, без shuffle, fixed ID/labels/order. В GPU не удерживаем все logits: сохраняем argmax и labels на CPU, NPZ с manifest hash/checksum. Повторный evaluate после сбоя не переобучает модель и не даёт нового seed. Test gate — freeze.json с LR всех четырёх методов и окончательной очередью; наличие публичных test bytes в cache не означает разрешение на оценку.
 
 ## Статистика
 
