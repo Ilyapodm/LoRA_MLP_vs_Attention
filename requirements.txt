@@ -1,0 +1,10 @@
+# Bootstrap candidate, not a GPU-validated lock. Record pip freeze after acceptance.
+torch==2.8.0
+torchvision==0.23.0
+transformers==4.57.1
+peft==0.17.1
+accelerate==1.10.1
+huggingface-hub==0.35.3
+safetensors==0.6.2
+numpy==2.2.6
+Pillow==11.3.0
