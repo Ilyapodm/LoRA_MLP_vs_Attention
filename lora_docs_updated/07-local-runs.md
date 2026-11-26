@@ -39,7 +39,7 @@ py -3.12 -m venv .venv
 Установить PyTorch из официального cu126 индекса, затем requirements:
 
 ```bash
-python -m pip install torch==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cu126
+python -m pip install torch==2.8.0+cu126 torchvision==0.23.0+cu126 --index-url https://download.pytorch.org/whl/cu126
 python -m pip install -r requirements.txt
 ```
 
@@ -194,3 +194,8 @@ GPU peak здесь общий train+val, не чистый backward. Загру
 seeds42/43/44, пять эпох, best по val и однократная оценка test25250. Код этого
 этапа пока не готов. Анализ качества — по итоговым моделям и трём seed;
 точный рейтинг скорости разных GPU из этих данных не строится.
+
+Если в уже существующем venv возникает `No module named pip`, выполнить
+`python -m ensurepip --upgrade`, затем повторить установку. Точные суффиксы
+`+cu126` в команде выше заменяют ранее установленный CPU-вариант PyTorch;
+`torch==2.8.0` без суффикса может посчитать `2.8.0+cpu` уже подходящей версией.

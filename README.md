@@ -24,7 +24,7 @@ CUDA PyTorch из cu126 индекса, затем requirements. Общий data
 распаковать в artifacts/protocol. Изображения скачиваются в локальный HF cache.
 
 ```bash
-python -m pip install torch==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cu126
+python -m pip install torch==2.8.0+cu126 torchvision==0.23.0+cu126 --index-url https://download.pytorch.org/whl/cu126
 python -m pip install -r requirements.txt
 ```
 
