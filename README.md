@@ -12,10 +12,13 @@ M-iso r16, B-iso r10/r8; штатный PEFT, LoRA-методы по 1 552 229 t
 LP — 77 669. Поиск: каждый метод × LR {1e-4,1e-3,1e-2}, seed142, 12 runs.
 Затем планируются 12 final (seeds42/43/44) и официальный test25250.
 
-Реализованы `technical` и **`lr_search`**, локальная очередь, preflight и сбор LR.
-**Final/evaluate/test gate и итоговая статистика ещё не реализованы.**
+Реализованы `technical`, **`lr_search`** и **final-обучение**, локальные очереди,
+preflight, сбор LR и фиксация final-плана/freeze. **Evaluate, проверка допуска
+test loader и итоговая статистика ещё не реализованы.** Final заканчивается
+подтверждённым TRAINED без test-метрик.
 
 Полная инструкция и таблица распределения: [07-local-runs.md](lora_docs_updated/07-local-runs.md).
+После всех 12 LR-проб: [08-final-runs.md](lora_docs_updated/08-final-runs.md).
 
 ## Быстрый порядок
 
@@ -73,6 +76,8 @@ LR search не создаёт test loader, test-поля null. Старт final 
 - train.py — Trainer, sample-weighted loss, technical и full-data lr_search, local best export.
 - experiment.py — неизменяемый план, проверка результатов и выбор LR.
 - run_queue.py — очереди ПК, допуск окружения/GPU, остановка/повтор и сбор результатов.
+- final_protocol.py / final_queue.py — проверка всех LR-проб, freeze, план 12 final и очереди seed-блоков.
+- final_train.py / final_results.py — final с исходных весов, best export, TRAINED/hashes и сбор обучений.
 - checkpoints.py / check_resume.py / check_storage.py — дополнительные bundle/resume/sync проверки;
   обязательная переносимость продолжения не используется в локальной научной серии.
 - package_protocol.py / package_bootstrap.py — общий protocol archive и source bundle.
@@ -114,6 +119,7 @@ Model SHA: b4569560a39a0f1af58e3ddaf17facf20ab919b0.
 Manifest hash: 8337fa066463bd272d5609998187f1f8cc730f3fa23c0eabdb7c555449e9c0cf.
 Независимая CPU/Colab подготовка дала один hash; все выбранные изображения проверены.
 Артефакты в artifacts/ и cache/ игнорируются Git; data-protocol.zip содержит
-только manifest/revisions/checksums, не изображения. Научные runs пока не выполнялись.
+только manifest/revisions/checksums, не изображения. Локальная LR-очередь RTX 3060
+завершена: четыре valid результата; общий выбор LR ждёт остальные восемь проб.
 
 Новый план до начала серии создаётся в новом файле: `python run_queue.py --make-plan --protocol artifacts/protocol --plan runs-new.json`; затем этот путь указывается во всех командах. Существующий план не перезаписывается.
