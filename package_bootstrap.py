@@ -4,8 +4,9 @@ import json
 from pathlib import Path
 import zipfile
 
-FILES = ('configs.py','bootstrap.py','test_params.py','requirements.txt',
-         'README.md','data.py','tests/test_configs.py','tests/test_data.py')
+FILES = ('configs.py','bootstrap.py','test_params.py','check_data.py','check_resume.py','check_storage.py','checkpoints.py',
+         'train.py','experiment.py','run_queue.py','package_protocol.py','requirements.txt','README.md','data.py','runs.json',
+         'tests/test_configs.py','tests/test_data.py','tests/test_trainer.py','tests/test_checkpoints.py','tests/test_experiment.py','tests/test_lr_training.py')
 
 
 def main():

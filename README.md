@@ -1,139 +1,106 @@
 # LoRA: Attention vs MLP vs Both
 
-Текущий этап реализации: **шаги 1–3 — окружение, сборка PEFT и подготовка данных**.
-Научный протокол согласован в [документах](lora_docs_updated/02-protocol.md):
-ViT-Base in21k, Food-101, 18 180 train / 2 020 val / 25 250 test, пять эпох,
-12 LR-проб и 12 итоговых моделей. В LoRA-методах по 1 552 229 trainable params,
-LP — 77 669. Подготовка Food-101 реализована в data.py, но manifest на исходном датасете ещё
-не создан/проверен. Trainer, сохранение/resume обучения и итоговая статистика
-**ещё не реализованы**. `test_params.py` — техническая проверка, не train.py.
+Основной сценарий — три постоянных ПК: RTX 4070 Ti, RTX 3090, RTX 3060.
+Один run целиком на одном ПК, checkpoints на локальном диске. После технического
+сбоя повторяем тот же run с начала в новой attempt-папке. Готовые результаты
+передаём координатору после завершения. Colab и перенос незавершённого обучения
+не являются условиями запуска основной серии.
 
-## Что уже есть
+Научный протокол: google/vit-base-patch16-224-in21k, Food-101, все 101 класс,
+18 180 train / 2 020 val (180/20 каждого класса), пять эпох. LP, A-iso r20,
+M-iso r16, B-iso r10/r8; штатный PEFT, LoRA-методы по 1 552 229 trainable params,
+LP — 77 669. Поиск: каждый метод × LR {1e-4,1e-3,1e-2}, seed142, 12 runs.
+Затем планируются 12 final (seeds42/43/44) и официальный test25250.
 
-- `configs.py`: LP, A-iso (r20), M-iso (r16), B-iso (r10/r8), точный выбор Linear,
-  штатный PEFT, общий старт head, аудит ranks/alpha/scaling и trainable whitelist.
-- `data.py`: PCG64-выборка 180/20 на класс, immutable manifest с hashes изображений,
-  точные transforms, отдельные RNG данных и epoch sampler; test loader отсутствует.
-- `bootstrap.py`: информация о Python/пакетах/CUDA/диске, безопасная проверка записи
-  в существующую постоянную папку. Сам не монтирует Drive и не подтверждает
-  облачную доставку локальной папки ПК.
-- `test_params.py`: ViT-Base с реальными размерами, три успешных обновления на искусственных входах,
-  проверка loss/gradients, обновления head и неизменности frozen weights.
-  AMP skips и scale сохраняются; десять пропусков подряд останавливают проверку.
-- `colab.ipynb`: установка, загрузка архива исходников с SHA-256, Drive и GPU-проверки.
-- `tests/test_configs.py`: проверки бюджета, форм и очереди без ML-пакетов.
+Реализованы `technical` и **`lr_search`**, локальная очередь, preflight и сбор LR.
+**Final/evaluate/test gate и итоговая статистика ещё не реализованы.**
 
-## Без зависимостей
+Полная инструкция и таблица распределения: [07-local-runs.md](lora_docs_updated/07-local-runs.md).
+
+## Быстрый порядок
+
+Python **3.12**, отдельный venv на каждом ПК, один видимый GPU. Сначала установить
+CUDA PyTorch из cu126 индекса, затем requirements. Общий data-protocol.zip
+распаковать в artifacts/protocol. Изображения скачиваются в локальный HF cache.
 
 ```bash
-python3 -m unittest discover -s tests -v
-python3 bootstrap.py --output artifacts/environment.json
+python -m pip install torch==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cu126
+python -m pip install -r requirements.txt
 ```
 
-## CPU-проверка на отдельном окружении
-
-Локально проверен Python 3.12, в Colab — 3.13. Не устанавливайте пакеты в системный Python.
+Готовый общий runs.json включён в репозиторий. Посмотреть свои задания:
 
 ```bash
-python3.12 -m venv .venv
-.venv/bin/python -m pip install torch==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cpu
-.venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python test_params.py --output artifacts/cpu-smoke.json
+python run_queue.py --dry-run --plan runs.json --protocol artifacts/protocol --executor rtx4070ti
 ```
 
-По умолчанию CPU smoke использует искусственные 32×32 изображения с интерполяцией
-position embeddings. Размеры весов, 12 блоков и ранги настоящие; это экономит
-время проверки gradients, **не проверяет память обучения 224×224**.
-
-`requirements.txt` фиксирует bootstrap-кандидат. Он не помечается принятым общим
-окружением до проверки Colab/локальной GPU и фиксации полного `pip freeze`.
-
-## Google Colab: пошагово
-
-1. Создать архив исходников:
-
-   ```bash
-   python3 package_bootstrap.py
-   ```
-
-2. Открыть `colab.ipynb` через Upload notebook на [Google Colab](https://colab.research.google.com/).
-3. Выбрать GPU, загрузить архив и установить отдельный venv по ячейкам. Kernel не перезапускать.
-4. Архив для загрузки: `artifacts/colab-bootstrap.zip`; запуск project scripts идёт через Python отдельного venv.
-5. Подключить Drive, указать свою папку/ID, выполнить проверки по порядку.
-6. Проверить отчёты на Drive. При ошибке остановиться; не считать тест пройденным.
-
-Синтетический GPU smoke проверяет 224×224, а отдельный профиль Both — 16×32
-microbatch/accumulation. Он не заменяет проверку на реальных изображениях,
-Trainer, validation и переносимого resume на следующем этапе.
-
-Для загрузки pretrained weights требуется полный model commit SHA. Notebook
-сохраняет его один раз в общем `protocol/model_revision.json`; все участники
-используют это значение, не разрешают main независимо. Качество на синтетических
-данных не является результатом эксперимента.
-
-## Чего ждать от проверок
-
-`test_params.py` не требует скачивания модели, если не передан `--pretrained`.
-Выходной JSON имеет `stage=technical` и `scientific_result=false`. Существующий
-отчёт не перезаписывается: выберите новый `--output`. Искусственные входы не
-используются для LR search. Test split Food-101 здесь вообще не читается.
-
-Следующие этапы: создание общего manifest на реальных данных, затем `train.py` с Trainer,
-проверка accumulation/save/resume/sync, runtime profile, и только потом LR search.
-
-## Подготовка Food-101 (шаг 3)
-
-Один раз координатор закрепляет commit SHA публичного датасета и передаёт его всем.
-Команда использует официальный train, не создаёт test loader. Возможно скачивание
-полного split/cache; требуется свободный диск и доступ к Hugging Face.
+После обновления вычислительного кода до первого научного запуска план нужно
+пересоздать. Все ПК получают **одни и те же исходники и runs.json**; во время
+серии использовать зафиксированный checkout/архив, не обновлять код в рабочем
+каталоге исполнителя. На каждом ПК заменить executor своим именем:
 
 ```bash
-.venv/bin/python data.py --dataset-revision FULL_40_CHARACTER_SHA --manifest artifacts/protocol/data_manifest.json
-.venv/bin/python data.py --verify --manifest artifacts/protocol/data_manifest.json
+python run_queue.py --preflight --plan runs.json --protocol artifacts/protocol --executor rtx4070ti --output results
+python run_queue.py --run --plan runs.json --protocol artifacts/protocol --executor rtx4070ti --output results --admission ПУТЬ_ИЗ_PREFLIGHT/admission.json
 ```
 
-Повторная подготовка не перезаписывает существующий manifest. В нём ровно
-18 180 train и 2 020 val, SHA-256 исходных изображений и самопроверяемый content hash.
-`--verify` проверяет структуру/баланс/ID/хеш manifest офлайн, не заменяет проверку
-image bytes при подготовке и чтении. EpochSampler должен подключаться к Trainer
-с передачей номера эпохи; это интегрируется и проверяется на следующем этапе.
+Сначала пройти preflight на всех трёх ПК. Каждая очередь последовательно выполняет
+четыре LR-задачи, каждый run в отдельном процессе. Готовые COMPLETE проверяются и
+пропускаются. Численно невалидный LR сохраняется, очередь продолжается;
+техническая ошибка останавливает её. После диагностики `--retry-failed` начинает
+новую попытку с теми же настройками. Логи/история старых попыток остаются.
 
-Если проверочный Python был установлен в /tmp и после перерыва исчез, .venv может
-содержать битую ссылку. Пересоздайте его с существующим Python 3.12. Для окружения
-самого агента runtime теперь хранится под игнорируемым .runtime/, а не /tmp.
+```bash
+python run_queue.py --collect --plan runs.json --protocol artifacts/protocol --results results/rtx4070ti results/rtx3090 results/rtx3060 --output selected_lrs.json
+```
 
-## Выполненные проверки (26.11.2026)
+Сбор требует все 12 исходов, проверяет hashes и выбирает LR по val correct_count,
+при равенстве меньший LR. Все три numerical_invalid одного метода блокируют выбор.
+LR search не создаёт test loader, test-поля null. Старт final — отдельный следующий этап.
 
-- 10 unittest-проверок прошли без пропусков на Python 3.12.13 / CPU PyTorch 2.8.0.
-- Настоящая структура ViT-Base + PEFT: LP/A/M/B по три optimizer steps на CPU,
-  отдельно синтетические входы 32×32 и 224×224. Совпали начальные head и числа
-  параметров; адаптеры получают gradients, frozen weights не меняются.
-- Evidence: artifacts/cpu-smoke-20261126.json, cpu-smoke-224-20261126.json,
-  environment-20261126.json, cpu-freeze-20261126.txt. Артефакты игнорируются Git.
-- CPU-проверки отдельно не подтверждают CUDA/AMP/VRAM или качество на Food-101.
+## Код
 
-В актуальном Colab проверено подключение Tesla T4. Системный runtime использует
-Python 3.13 и более новый PyTorch; notebook устанавливает закреплённый стек в
-/content/lora_env и не заменяет kernel. Обычный venv в Colab может не иметь ensurepip,
-поэтому используем venv --without-pip и host pip --python для установки пакетов.
-GPU-проверки и замеры считаются пройденными только по завершённым отчётам.
+- configs.py — модель, ranks/alpha, trainable whitelist, head init, PEFT.
+- data.py / check_data.py — manifest, image hashes, transforms/RNG/sampler, приёмка данных.
+- train.py — Trainer, sample-weighted loss, technical и full-data lr_search, local best export.
+- experiment.py — неизменяемый план, проверка результатов и выбор LR.
+- run_queue.py — очереди ПК, допуск окружения/GPU, остановка/повтор и сбор результатов.
+- checkpoints.py / check_resume.py / check_storage.py — дополнительные bundle/resume/sync проверки;
+  обязательная переносимость продолжения не используется в локальной научной серии.
+- package_protocol.py / package_bootstrap.py — общий protocol archive и source bundle.
+- colab.ipynb — вспомогательные технические проверки, не основной запуск LR.
 
-На Tesla T4 (14,56 GiB) завершены проверки CUDA/AMP для LP/A/M/B на 224×224:
-каждый метод выполнил три успешных обновления, одинаковая head и frozen weights
-проверены. У каждого был один стартовый AMP overflow: scale 65536→32768,
-после чего три обновления прошли. Исходная строгая проверка gradients ошибочно
-останавливалась на этом допустимом пропуске; исправлена обработка GradScaler.
+Научный lr_search не принимает probe/stop/dummy/resume/произвольные LR или seed:
+задание берётся из проверенного плана, обучается полный manifest пять эпох.
+Сохраняются config/environment/status/history/updates/metrics, best export,
+checksums и COMPLETE последним. LP export — head, PEFT export — LoRA+classifier;
+Trainer checkpoints для LP содержат полный ViT.
 
-Both с batch 16 / accumulation 32 выполнил три обновления без OOM и skips:
-peak allocated **2,034 GiB**, reserved **2,102 GiB**, цикл **16,29 с**.
-Это синтетические входы, без реального data loader, validation и Trainer;
-скорость не переносим в бюджет 24 обучений. Pretrained Both тоже прошёл три
-обновления; model SHA: `b4569560a39a0f1af58e3ddaf17facf20ab919b0`.
+## Проверки и ограничения
 
-Отчёты, полный pip freeze и SOURCE_MANIFEST сохранены локально в
-`artifacts/colab-T4-20261126/`. Перенос проверен SHA-256; исходный неуспешный
-smoke и вывод десяти успешных unittest сохранены в `initial-attempt/`.
-Проверенная computational source release: `839e471a2f4390ad4d8bd08e789c3aa260570cd43060afb582cbce47f5df544e`.
-Последующие изменения README/notebook меняют hash архива; они не являются
-повторным GPU-запуском. Стек пока принят только для этой технической проверки:
-данные, Trainer/resume/sync и локальные GPU ещё требуют приёмки.
+```bash
+python -m unittest discover -s tests -v
+```
+
+Без ML-зависимостей доступны stdlib-тесты плана, данных и файловой целостности;
+ML/CUDA проверки пропускаются с явным сообщением. CPU integration test проходит
+полный путь LR на маленькой модели с 18 180 train / 2 020 val × 5: 180 updates,
+пять val-оценок, ранний best при равенстве, export/COMPLETE и numerical_invalid.
+Это проверка логики, не измерение GPU и не научная accuracy.
+
+Ранее в Colab T4 подтверждены LP/A/M/B gradients/freeze/params, pretrained Both,
+реальные данные и короткий Trainer 772/32 × 2: 31,34 с, allocated/reserved
+2,312/2,496 GiB. Эти числа не являются benchmark трёх ПК или полным бюджетом.
+Восстановление LP после переноса совпало точно. У Both продолжение AMP отличалось
+до 1,3e-5; переносимый resume не принят. Это не основание объявлять ошибочным
+обычный полный run; локальная очередь начинает повтор с исходных весов.
+Физические 4070 Ti/3090/3060 в текущей среде недоступны; их CUDA preflight ещё впереди.
+
+Dataset SHA: 83488de741c1bd1ce27aa6a2b33e19c7bdf92ca9.
+Model SHA: b4569560a39a0f1af58e3ddaf17facf20ab919b0.
+Manifest hash: 8337fa066463bd272d5609998187f1f8cc730f3fa23c0eabdb7c555449e9c0cf.
+Независимая CPU/Colab подготовка дала один hash; все выбранные изображения проверены.
+Артефакты в artifacts/ и cache/ игнорируются Git; data-protocol.zip содержит
+только manifest/revisions/checksums, не изображения. Научные runs пока не выполнялись.
+
+Новый план до начала серии создаётся в новом файле: `python run_queue.py --make-plan --protocol artifacts/protocol --plan runs-new.json`; затем этот путь указывается во всех командах. Существующий план не перезаписывается.

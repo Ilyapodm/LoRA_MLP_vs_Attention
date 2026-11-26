@@ -160,4 +160,7 @@ def load_model(name, seed, revision, label_names=None):
         id2label=labels, label2id={v: k for k, v in labels.items()},
         attn_implementation="sdpa", torch_dtype="float32",
     )
-    return configure_model(base, CONFIGS[name], seed)
+    model = configure_model(base, CONFIGS[name], seed)
+    if name != 'LP':
+        model.peft_config['default'].revision = revision
+    return model
