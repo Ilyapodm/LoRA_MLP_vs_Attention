@@ -1,0 +1,6 @@
+# Identical source bytes on Windows/Linux: runs.json fingerprints these files.
+* text=auto eol=lf
+*.zip binary
+*.npz binary
+*.safetensors binary
+*.pt binary

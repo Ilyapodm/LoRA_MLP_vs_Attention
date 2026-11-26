@@ -9,7 +9,33 @@ runs повторяются с начала с теми же config/LR/seed, в 
 
 ## 1. Одинаковое окружение и данные
 
+Репозиторий клонируется каждым владельцем; все используют одну согласованную версию:
+
+```bash
+git clone https://github.com/Ilyapodm/LoRA_MLP_vs_Attention.git
+cd LoRA_MLP_vs_Attention
+git rev-parse HEAD
+```
+
 На каждом ПК: Python **3.12**, отдельный venv, одна видимая CUDA GPU.
+Linux/macOS (обучение с CUDA — на поддерживаемом ПК NVIDIA):
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+```
+
+Windows CMD:
+
+```bat
+py -3.12 -m venv .venv
+.venv\Scripts\activate.bat
+```
+
+В PowerShell можно обходиться без активации: вместо `python` во всех следующих
+командах использовать `.\.venv\Scripts\python.exe`.
+Файл .gitattributes сохраняет LF и одинаковые байты исходников при клонировании
+на Windows/Linux; это важно для проверки source_hash в плане.
 Установить PyTorch из официального cu126 индекса, затем requirements:
 
 ```bash
@@ -18,7 +44,14 @@ python -m pip install -r requirements.txt
 ```
 
 Команды ниже выполняются Python активированного venv из корня проекта.
-Общий `data-protocol.zip` распаковать в `artifacts/protocol/`.
+Общий `data-protocol.zip` координатор передаёт отдельно: архив находится в его
+artifacts/, игнорируется Git и сам при clone не появится. Изображений в нём нет.
+Распаковать содержимое архива непосредственно в `artifacts/protocol/`, без лишней
+вложенной папки. Предварительная офлайн-проверка:
+
+```bash
+python data.py --verify --manifest artifacts/protocol/data_manifest.json
+```
 Там должны быть data_manifest.json, model_revision.json, dataset_revision.json.
 Код/manifest/revisions одинаковые на всех ПК. Для cache можно задать HF_HOME
 на локальный диск; Parquet+Arrow Food-101 занимают около 10 GiB.
@@ -118,3 +151,46 @@ python run_queue.py --collect --plan runs.json --protocol artifacts/protocol --r
 читать test: final freeze/очередь и evaluation ещё нужно реализовать.
 
 Новый план до начала серии создаётся в новом файле: `python run_queue.py --make-plan --protocol artifacts/protocol --plan runs-new.json`; затем этот путь указывается во всех командах. Существующий план не перезаписывается.
+
+
+## Какие метрики сохраняются
+
+LR — гиперпараметр, не метрика. В каждом научном LR run сохраняются:
+
+| Файл | Содержимое |
+| --- | --- |
+| history.json | train loss/grad norm/LR по optimizer steps; val loss, accuracy, correct_count/sample_count после каждой из пяти эпох |
+| metrics.json | best val accuracy/count, best epoch, завершённые эпохи/шаги; wall train job, val/save время и train residual; GPU allocated/reserved peak; applied/skipped updates |
+| updates.json | LR после обновления, AMP scale и флаг пропуска каждой попытки |
+| environment.json | фактическая GPU/VRAM, Python, библиотеки, CUDA build и ОС |
+| config.json | полный общий план, method/LR/seed и закреплённые source/data/model/profile |
+| best/ | веса лучшей модели и metadata |
+
+Train accuracy сейчас отдельно не вычисляется. Test-поля в LR search null;
+test accuracy, предсказания и статистика, а также LoRA norms относятся к будущему
+final/evaluate этапу. Время включает реальное чтение/преобразование данных;
+GPU peak здесь общий train+val, не чистый backward. Загрузка данных/модели до
+старта Trainer не входит в wall_train_job_seconds. train loss — агрегат по
+логируемой accumulation-группе, не отдельная оценка всего train после эпохи.
+
+## 3060 и завершение этапа
+
+Очереди независимые: нет синхронизации batch между картами. Более быстрый ПК
+выполняет тот же microbatch быстрее и не ждёт 3060 на каждом шаге. Однако весь
+этап LR заканчивается после последней очереди; равные четыре задания могут
+создать хвост на более медленном ПК. Сейчас это начальное назначение, не
+оптимизация по ещё не измеренным скоростям.
+
+16/32 выбран как общий исходный профиль, а не установлен по возможностям 3060.
+В коротком Trainer Both на T4 peak allocated/reserved был 2,312/2,496 GiB;
+проверка конкретных ПК ещё необходима. Больший microbatch на быстрой карте
+может повысить throughput, но требует замера. Разные microbatch при том же
+512 меняют разбиение dropout/FP16 операций, поэтому текущий план оставляет
+общий профиль. Если он не проходит, профиль пересматриваем до научной серии,
+создаём новый план и повторяем допуск всех карт.
+
+После сбора 12 LR результатов selected_lrs.json даёт четыре выбранных LR.
+Далее реализуются final/freeze/evaluate: новые модели с исходных весов,
+seeds42/43/44, пять эпох, best по val и однократная оценка test25250. Код этого
+этапа пока не готов. Анализ качества — по итоговым моделям и трём seed;
+точный рейтинг скорости разных GPU из этих данных не строится.
