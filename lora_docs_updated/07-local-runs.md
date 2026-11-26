@@ -53,9 +53,43 @@ artifacts/, игнорируется Git и сам при clone не появи�
 python data.py --verify --manifest artifacts/protocol/data_manifest.json
 ```
 Там должны быть data_manifest.json, model_revision.json, dataset_revision.json.
-Код/manifest/revisions одинаковые на всех ПК. Для cache можно задать HF_HOME
-на локальный диск; Parquet+Arrow Food-101 занимают около 10 GiB.
-Изображения и checkpoints не читаются с Drive во время обучения.
+Код/manifest/revisions одинаковые на всех ПК. Parquet+Arrow Food-101 занимают
+около 10 GiB. Изображения и checkpoints не читаются с Drive во время обучения.
+
+**Preflight и очередь должны использовать одну и ту же папку HF cache.** Если
+preflight уже выполнен со стандартным cache и HF_HOME не задавался, можно
+продолжать без HF_HOME: данные будут переиспользованы из стандартной папки.
+Менять путь после загрузки не нужно — другой путь вызовет повторное скачивание.
+Одинаковый абсолютный путь на разных ПК не требуется.
+
+Для новой установки удобно выбрать cache внутри проекта. Выполнить из корня
+репозитория **до preflight** и сохранять те же настройки при запуске очереди.
+Linux/bash:
+
+```bash
+export HF_HOME="$PWD/cache/huggingface"
+export HF_HUB_DISABLE_XET=1
+```
+
+Windows CMD:
+
+```bat
+set "HF_HOME=%CD%\cache\huggingface"
+set "HF_HUB_DISABLE_XET=1"
+```
+
+PowerShell:
+
+```powershell
+$env:HF_HOME = Join-Path (Get-Location).Path 'cache\huggingface'
+$env:HF_HUB_DISABLE_XET = '1'
+```
+
+Эти переменные действуют в текущем терминале и наследуются всеми заданиями
+очереди. В новом терминале повторить настройку до запуска. HF_HUB_DISABLE_XET=1
+выбирает обычную HTTP-загрузку вместо Xet; на настройки обучения не влияет.
+Если ранее отдельно задавались HF_HUB_CACHE или HF_DATASETS_CACHE, они также
+должны указывать на те же папки при preflight и --run.
 
 ## 2. Один общий план
 
@@ -84,7 +118,9 @@ python run_queue.py --preflight --plan runs.json --protocol artifacts/protocol -
 Команда проверит CUDA/версии, все выбранные изображения, модули/gradients LP/A/M/B
 и короткий Both через Trainer с общим профилем. Успех создаёт admission.json;
 его путь печатается в конце. При ошибке посмотреть logs внутри preflight-папки.
-Сначала пройти preflight на всех трёх ПК, затем начать LR search.
+Каждый ПК может начать свою очередь после собственного успешного preflight;
+проверки остальных выполняются параллельно. Общие код, план и профиль фиксированы.
+Если потребуется изменить их, результаты разных планов не смешиваются.
 Состояние на 26.11.2026: RTX 3060 12GB прошла полный preflight на Linux,
 Python 3.12.13, torch 2.8.0+cu126. Все 18 180/2 020 изображений и проверки
 LP/A/M/B прошли. Короткий pretrained Both 772/32 × 2: job 20,43 с,
@@ -105,6 +141,11 @@ python run_queue.py --run --plan runs.json --protocol artifacts/protocol --execu
 использует полный manifest, 5 эпох, AdamW/linear scheduler и выбирает best по
 целому val correct_count; при равенстве — ранняя эпоха. Test loader отсутствует.
 Технические поднаборы, dummy-метрика и --resume-bundle в LR-режиме запрещены.
+
+Команду запускать с теми же HF_HOME/HF_HUB_CACHE/HF_DATASETS_CACHE, что и preflight.
+Повторная загрузка гигабайтов при уже подготовленных данных — повод сначала
+сверить эти пути. Во время первоначальной загрузки GPU может простаивать;
+прогресс Trainer появится после подготовки данных и модели.
 
 Готовые результаты с COMPLETE/hashes проверяются и пропускаются при повторном
 запуске очереди. Numerical_invalid сохраняется как исход поиска, очередь идёт

@@ -28,6 +28,13 @@ python -m pip install torch==2.8.0+cu126 torchvision==0.23.0+cu126 --index-url h
 python -m pip install -r requirements.txt
 ```
 
+Preflight и очередь должны использовать один HF cache. Для новой установки
+можно выбрать `cache/huggingface` внутри проекта; настройка HF_HOME для
+bash/CMD/PowerShell дана в [инструкции](lora_docs_updated/07-local-runs.md#1-одинаковое-окружение-и-данные).
+Если preflight уже скачал данные в стандартный cache без HF_HOME, продолжайте
+с теми же настройками. Смена пути приводит к повторному скачиванию. Переменные
+cache нужно восстанавливать в каждом новом терминале перед запуском.
+
 Готовый общий runs.json включён в репозиторий. Посмотреть свои задания:
 
 ```bash
@@ -44,7 +51,8 @@ python run_queue.py --preflight --plan runs.json --protocol artifacts/protocol -
 python run_queue.py --run --plan runs.json --protocol artifacts/protocol --executor rtx4070ti --output results --admission ПУТЬ_ИЗ_PREFLIGHT/admission.json
 ```
 
-Сначала пройти preflight на всех трёх ПК. Каждая очередь последовательно выполняет
+Каждый ПК начинает очередь после своего успешного preflight; проверки остальных
+могут идти параллельно. Каждая очередь последовательно выполняет
 четыре LR-задачи, каждый run в отдельном процессе. Готовые COMPLETE проверяются и
 пропускаются. Численно невалидный LR сохраняется, очередь продолжается;
 техническая ошибка останавливает её. После диагностики `--retry-failed` начинает
