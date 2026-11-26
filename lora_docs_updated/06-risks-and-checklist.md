@@ -128,7 +128,8 @@ artifacts/colab-T4-20261126/ и artifacts/colab-Trainer-20261126/; детали 
 - [x] Реализован lr_search на полном train/val, 5 эпох, seed142, fixed LR grid.
 - [x] Реализованы план 12 runs, локальная очередь, hashes/COMPLETE, сбор и tie-break LR.
 - [x] CPU integration: 18 180/2 020 × 5, 180 updates, best/export, numerical_invalid.
-- [ ] Preflight Python3.12/CUDA12.6 и фактического профиля на 4070 Ti/3090/3060.
+- [x] Preflight Python3.12/CUDA12.6 и фактического профиля на RTX 3060 12GB: все данные, LP/A/M/B gradients, pretrained Both Trainer; 20,43 с и allocated/reserved 2,312/2,496 GiB в коротком Both.
+- [ ] Preflight того же профиля на 4070 Ti и 3090.
 - [ ] Запущены и собраны 12 научных LR trials.
 - [ ] Реализованы final/freeze/test gate/evaluate и итоговая статистика.
 
