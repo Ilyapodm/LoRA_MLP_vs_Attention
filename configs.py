@@ -1,7 +1,6 @@
 """Four experiment configurations. No imports of torch/PEFT until model construction."""
 from dataclasses import dataclass
 import hashlib
-import json
 import re
 
 MODEL_ID = "google/vit-base-patch16-224-in21k"
@@ -89,7 +88,7 @@ def configure_model(base, config, seed):
         raise ValueError("Expected a 768 -> 101 classifier")
     base.requires_grad_(False)
     with torch.random.fork_rng(devices=[]):
-        torch.manual_seed(seed)
+        torch.default_generator.manual_seed(seed)
         torch.nn.init.trunc_normal_(base.classifier.weight, mean=0,
                                    std=c.initializer_range, a=-2, b=2)
         torch.nn.init.zeros_(base.classifier.bias)
@@ -104,7 +103,7 @@ def configure_model(base, config, seed):
         model = base
     else:
         with torch.random.fork_rng(devices=[]):
-            torch.manual_seed(seed + 10000)
+            torch.default_generator.manual_seed(seed + 10000)
             model = get_peft_model(base, lora_config(config))
     if head_hash(model) != initial_head:
         raise AssertionError("PEFT changed the initial classifier")
@@ -146,12 +145,16 @@ def audit_model(model, config):
             "adapter_count": len(seen), "head_hash": head_hash(model)}
 
 
-def load_model(name, seed, revision):
+def load_model(name, seed, revision, label_names=None):
     """Only immutable Hub commits are accepted for pretrained runs."""
     from transformers import ViTForImageClassification
     if not re.fullmatch(r"[0-9a-f]{40}", revision or ""):
         raise ValueError("Pass a full 40-character model commit SHA, not main")
-    labels = {i: str(i) for i in range(NUM_LABELS)}  # Replaced with Food-101 names at the data stage.
+    if label_names is None:
+        label_names = [str(i) for i in range(NUM_LABELS)]  # Synthetic checks only.
+    if len(label_names) != NUM_LABELS or len(set(label_names)) != NUM_LABELS:
+        raise ValueError("Expected 101 unique label names")
+    labels = dict(enumerate(label_names))
     base = ViTForImageClassification.from_pretrained(
         MODEL_ID, revision=revision, num_labels=NUM_LABELS,
         id2label=labels, label2id={v: k for k, v in labels.items()},

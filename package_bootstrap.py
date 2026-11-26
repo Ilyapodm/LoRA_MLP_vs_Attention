@@ -5,7 +5,7 @@ from pathlib import Path
 import zipfile
 
 FILES = ('configs.py','bootstrap.py','test_params.py','requirements.txt',
-         'README.md','tests/test_configs.py')
+         'README.md','data.py','tests/test_configs.py','tests/test_data.py')
 
 
 def main():

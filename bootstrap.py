@@ -19,7 +19,7 @@ def main():
     info = {'python':sys.version, 'platform':platform.platform(), 'packages':{},
             'disk_free_gib':shutil.disk_usage(Path.cwd()).free/2**30,
             'note':'bootstrap evidence, not an accepted full experiment lock'}
-    for name in ['torch','torchvision','transformers','peft','accelerate','numpy','Pillow','safetensors','huggingface-hub']:
+    for name in ['torch','torchvision','transformers','peft','accelerate','numpy','Pillow','safetensors','huggingface-hub','datasets']:
         try:
             info['packages'][name] = importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError:

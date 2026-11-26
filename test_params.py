@@ -26,7 +26,7 @@ def run_one(name, args):
         model = load_model(name, args.seed, args.revision)
     else:
         with torch.random.fork_rng(devices=[]):
-            torch.manual_seed(12345)  # Identical random base for each configuration.
+            torch.default_generator.manual_seed(12345)  # CPU-only, identical random base.
             base = ViTForImageClassification(ViTConfig(num_labels=101, attn_implementation="sdpa"))
         model = configure_model(base, CONFIGS[name], args.seed)
     report = audit_model(model, CONFIGS[name])
@@ -51,7 +51,10 @@ def run_one(name, args):
     start = time.perf_counter()
     a_gradient = b_gradient = head_gradient = False
     losses = []
-    for step in range(args.steps):
+    successful_steps = attempts = skipped_steps = consecutive_skips = 0
+    scale_history = []
+    while successful_steps < args.steps:
+        attempts += 1
         optimizer.zero_grad(set_to_none=True)
         for micro in range(args.accumulation):
             with torch.autocast('cuda', dtype=torch.float16) if amp else nullcontext():
@@ -63,10 +66,25 @@ def run_one(name, args):
             losses.append(float(loss.detach()))
             scaler.scale(loss / args.accumulation).backward()
         scaler.unscale_(optimizer)
+        finite_gradients = all(torch.isfinite(p.grad).all().item()
+                               for p in model.parameters()
+                               if p.requires_grad and p.grad is not None)
+        scale_before = scaler.get_scale()
+        if not finite_gradients:
+            if not amp:
+                raise AssertionError('Nonfinite FP32 synthetic smoke gradient')
+            # GradScaler records overflow during unscale_, skips the optimizer
+            # update and reduces its scale. This is normal FP16 calibration.
+            scaler.step(optimizer)
+            scaler.update()
+            scale_history.append([scale_before, scaler.get_scale()])
+            skipped_steps += 1
+            consecutive_skips += 1
+            if consecutive_skips >= 10:
+                raise AssertionError('10 consecutive AMP skips; technical check failed')
+            continue
         for n, p in model.named_parameters():
             if p.requires_grad and p.grad is not None:
-                if not torch.isfinite(p.grad).all().item():
-                    raise AssertionError(f'Nonfinite synthetic smoke gradient: {n}')
                 nonzero = torch.count_nonzero(p.grad).item() > 0
                 a_gradient |= 'lora_A.' in n and nonzero
                 b_gradient |= 'lora_B.' in n and nonzero
@@ -74,11 +92,18 @@ def run_one(name, args):
         torch.nn.utils.clip_grad_norm_((p for p in model.parameters() if p.requires_grad), 1.0)
         scaler.step(optimizer)
         scaler.update()
+        scale_history.append([scale_before, scaler.get_scale()])
+        successful_steps += 1
+        consecutive_skips = 0
+        if not all(torch.isfinite(p).all().item() for p in model.parameters() if p.requires_grad):
+            raise AssertionError('Nonfinite weights after optimizer update')
     if amp:
         torch.cuda.synchronize()
     report.update(seconds=time.perf_counter()-start, losses=losses,
                   image_size=args.image_size, batch_size=args.batch_size,
                   accumulation=args.accumulation, steps=args.steps, device=args.device,
+                  optimizer_attempts=attempts, successful_steps=successful_steps,
+                  amp_skipped_steps=skipped_steps, scale_history=scale_history,
                   pretrained=args.pretrained, model_revision=args.revision if args.pretrained else None,
                   stage='technical', scientific_result=False)
     if amp:

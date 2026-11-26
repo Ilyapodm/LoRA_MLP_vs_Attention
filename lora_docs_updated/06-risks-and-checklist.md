@@ -1,6 +1,6 @@
 # Риски, решения и готовность
 
-Редакция 25.11.2026. Пользователь согласовал план; начата реализация bootstrap/PEFT-сборки; экспериментальное обучение не запускалось. Пять дней и пять участников; код/архитектура — пользователь с ассистентом; бесплатный Colab, затем три ПК.
+Редакция 26.11.2026. Пользователь согласовал план; bootstrap/PEFT-сборка проверены на CPU и Colab T4, реализована подготовка данных; экспериментальное обучение не запускалось. Пять дней и пять участников; код/архитектура — пользователь с ассистентом; бесплатный Colab, затем три ПК.
 
 ## Согласовано
 
@@ -74,9 +74,9 @@
 - [ ] Реализован единый минимальный пайплайн Colab/ПК.
 - [ ] Manifest: 18 180/2 020, ровно 180/20 на класс, без пересечений.
 - [ ] Model/dataset revisions и точные версии сохранены.
-- [ ] Модули/формы/ranks/alpha/freeze/params проверены для LP/A/M/B.
-- [ ] Head одинакова между методами seed; LP checkpoint не переносится.
-- [ ] Gradients LoRA есть; frozen weights не меняются.
+- [x] Модули/формы/ranks/alpha/freeze/params проверены для LP/A/M/B (CPU и CUDA/AMP T4).
+- [x] Head одинакова между методами seed; LP checkpoint не переносится.
+- [x] Gradients LoRA есть; frozen weights не меняются (по три успешных updates).
 - [ ] Короткий B-iso проходит без OOM; microbatch/backend/precision фиксированы.
 - [ ] Проверены sample-weighted accumulation (включая 260 остаточных примеров), scheduler и AMP skipped updates; десять consecutive skips дают technical_failed.
 - [ ] Best reload/resume с переносимыми путями и полным Trainer best_model для LP проверены; head-only export не используется как full checkpoint.
@@ -84,6 +84,12 @@
 - [ ] Evaluate/export без переобучения на val, schema/null fields/NPZ/checksums/сборка без дублей проверены.
 - [ ] Test gate блокирует technical/lr_search и final без freeze.json.
 - [ ] Скорость/память/хранение измерены, бюджет 24 обучений пересчитан.
+
+Промежуточная GPU-проверка завершена: Both 16/32 на T4 без OOM, allocated/reserved
+2,034/2,102 GiB; pretrained Both прошёл. Стартовые AMP skips учтены корректно.
+Пункты полного профиля, accumulation и resume остаются открытыми до проверки
+реальных данных и Trainer. Отчёты: artifacts/colab-T4-20261126/; детали —
+[состояние реализации](03-implementation.md#состояние-реализации-на-26112026).
 
 ## Завершение
 
