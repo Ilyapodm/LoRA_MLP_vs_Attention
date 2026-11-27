@@ -1,243 +1,72 @@
-> **Исторический документ v1 (пятиэпоховый пилот).** Активная серия — v2: [протокол](02-protocol.md), [запуск](09-v2-runs.md). Указанные ниже 12 LR/12 final и команды v1 не относятся к v2.
+# Локальная архитектура актуальной серии
 
-# Принятая техническая архитектура
+Один run целиком на одном постоянном ПК, отдельный процесс, одна видимая CUDA GPU.
+Три независимые очереди RTX4070Ti/3090/3060. Cache, checkpoints и результаты —
+локальный диск. После технического сбоя повтор того же задания с начала в новой
+attempt. Готовые исходные артефакты передаются координатору архивом.
 
-> Актуализация 26.11.2026: основная серия перенесена на три постоянных ПК.
-> Один run целиком на одной карте; технически прерванный run повторяем с начала
-> с теми же параметрами. Локальные checkpoints, передача готовых результатов
-> после run; переносимый resume и Drive-sync не блокируют LR search.
-> Научные данные/5 эпох/12 LR/12 final не меняются. Подробности и команды:
-> [07-local-runs.md](07-local-runs.md). Прежние требования к Colab/переносу ниже
-> относятся только к необязательному Colab/диагностическому сценарию.
+Научный контракт — [02](02-protocol.md), команды — [09](09-v2-runs.md).
+Прежние сценарии доступны в Git (`1c074e7` — снимок перед удалением).
 
+## Модули
 
-Редакция 26.11.2026. Технические решения зафиксированы по поручению пользователя. Реализованы bootstrap, PEFT, данные и короткий technical Trainer; научная серия ещё не запускалась. Научный протокол: 20 200 изображений, пять эпох, PEFT LoRA, LP/A/M/B, 12 LR + 12 final = 24 запуска. Источник истины по эксперименту — [02-protocol.md](02-protocol.md), ресурсы — [04-team-and-plan.md](04-team-and-plan.md).
-
-Принятые правила ниже обязательны для первой реализации. Runtime-проверка ещё должна установить совместимые версии полного стека, вместимость batch, реальные скорости и пути/права хранилища. Это проверка работоспособности выбранной архитектуры, не повторный выбор методов, данных, LR-сетки или эпох.
-
-## 1. PEFT и небольшой общий пайплайн
-
-Адаптеры создаёт Hugging Face PEFT через LoraConfig/get_peft_model; обучение, AMP и resume ведёт Transformers Trainer. Собственную LoRA, собственный универсальный training loop, Docker, DDP, DeepSpeed, quantization и scheduler заданий не разрабатываем. Один процесс выполняет один run; после выхода GPU память освобождается. Код ведут пользователь и ассистент, участники выполняют назначенные задания.
-
-| Будущий файл | Ответственность |
+| Файл | Ответственность |
 | --- | --- |
-| configs.py | четыре конфигурации, полные имена Linear, ranks/alpha и формулы |
-| data.py | общий manifest, dataset, transforms, sampler и collator |
-| train.py | действия train/resume/evaluate/export, проверки, Trainer, артефакты и sync |
-| colab.ipynb | установка закреплённого окружения, Drive/cache, вызов того же train.py |
-| analysis.ipynb | валидация результатов, CSV, статистика и графики |
-| test_params.py | критические проверки сборки, gradients, accumulation и resume |
-| requirements.txt | точные проверенные версии библиотек |
-| runs.json | очередь LR/final, назначения и идентичность конфигураций |
-
-Stage (technical/lr_search/final) задаёт научное назначение; action (train/resume/evaluate/export) — действие над запуском. Colab и ПК отличаются только путями и hardware metadata. CLI не принимает произвольные изменения параметров согласованного протокола без нового protocol_id.
-
-## 2. Окружение и версия кода
-
-Целевая структура ViT — Transformers **4.57.1**, для которой проверены имена модулей в исходнике. Bootstrap-стек проверен на Colab T4; полный pipeline ещё требует приёмки. На ПК отдельное venv; в Colab также отдельное venv, запускаем скрипты его Python, пакеты kernel не заменяем и kernel не перезапускаем. Из-за отсутствия ensurepip используем venv --without-pip и host pip --python. Точные версии и Python major/minor сохраняем в отчёте. Ошибка совместимости означает остановку bootstrap и согласованное исправление стека до серии, не автозамену пакетов на latest.
-
-Локальные GPU проверяем перед фактическим подключением к вычислениям, а не как условие продолжения работы только в Colab. T4 не подтверждает драйверы/VRAM ПК: перед первым локальным run нужны короткие CUDA/PEFT и train+val проверки с уже закреплённым общим профилем. Перед переносом незавершённого run на ПК проверяем и переносимый resume. Если ПК не проходит профиль, его пока не допускаем; не меняем настройки отдельного метода и не повторяем всю завершённую серию Colab только ради допуска ПК.
-
-CUDA build должен поддерживаться установленным драйвером; одинаковые драйверы на разных машинах не требуются. Python/package/CUDA runtime/driver versions сохраняются в environment.json каждого attempt. Модель, processor и dataset закрепляются полными commit revisions, а не main.
-
-Код распространяется одной неизменяемой release-версией: Git commit и архив исходников с SHA-256. До инициализации Git источником версии служит архив с хешем. На старте сверяем хеш исполняемых файлов; документационные изменения сами по себе не меняют computational code hash. Requirements и release manifest архивируются вместе с результатами.
-
-Почему так: готовые PEFT/Trainer сокращают собственный код; закреплённая release-версия не даёт пяти исполнителям незаметно разойтись в реализации.
-
-## 3. Сборка модели и head
-
-Загружаем ViTForImageClassification на FP32 весах, num_labels=101 и единую таблицу label2id/id2label. Classifier создаём заново и явно инициализируем в отдельном RNG-контексте: truncated normal mean=0, std=config.initializer_range, стандартные bounds PyTorch a=-2,b=2, bias=0; эта процедура одинакова для всех методов. Сохраняем хеш head до PEFT и проверяем активную head после обёртки.
-
-Для A/M/B используем generic PeftModel без текстовых task_type; modules_to_save=[classifier], bias=none, обычная инициализация LoRA init_lora_weights=True (B=0). Полные имена Linear получаем из закреплённой структуры, не общий suffix dense. Разные ranks/alpha Both задаём точными pattern keys и проверяем результат на каждом слое. Для LP PEFT не требуется: замороженный backbone и обучаемая head, тот же data/training pipeline.
-
-Перед каждым run проверяем 12 блоков, формы Q/K/V/O и FC1/FC2, 101 выход classifier; число LoRA-модулей A=48, M=24, B=72, LP=0; ranks/scaling и trainable whitelist. Для A/M/B ровно 1 474 560 LoRA + 77 669 head = 1 552 229 trainable; LP 77 669. Активная head одна, исходный backbone совпадает с revision. Нулевое начальное обновление адаптера проверяется на детерминированном входе в eval mode.
-
-Smoke test нескольких optimizer steps проверяет head/LoRA gradients и неизменность frozen weights. При B=0 первый gradient A может быть нулевым: B проверяем на первом шаге, A после следующих. В LoRA-методах не оборачиваем весь backbone в no_grad; при обучении model.train(), при оценке model.eval(). Признаки CLS для LP заранее не кешируем: у него те же меняющиеся train crops, что у LoRA.
-
-Почему так: одинаковая head даёт общий старт, а проверка реальных модулей исключает адаптацию не тех матриц при формально верной сумме параметров.
-
-## 4. Manifest и точные преобразования
-
-Один ответственный создаёт manifest до очереди: классы обходятся в порядке исходных ID, внутри класса исходные row indices сортируются, один NumPy Generator(PCG64), seed=42, выдаёт перестановки; первые 200 выбираются, первые 180 из них train, следующие 20 val. Сохраняем результат и версию алгоритма; последующие сессии читают manifest, не генерируют его заново.
-
-ID изображения = dataset revision + source split + row index. Manifest содержит ID/label, SHA-256 исходных image bytes, ordered train/val lists, counts, label mapping, свой hash и dataset revision. Проверяем декодирование всех выбранных train/val, ровно 180/20 на каждый из 101 класса и отсутствие пересечений. Испорченные изображения не пропускаются тихо: ошибка подготовки требует общего исправления manifest до серии. Test IDs идут в исходном порядке официального validation фиксированной revision; ID/labels/hash его списка проверяются при итоговой оценке.
-
-| Этап | Фиксированная процедура |
-| --- | --- |
-| Train | RGB → RandomResizedCrop 224, scale=(0.08,1.0), ratio=(3/4,4/3), BILINEAR, antialias=True → HorizontalFlip p=0.5 → ToTensor FP32 → Normalize |
-| Val/test | RGB → Resize короткой стороны до 224, BILINEAR, antialias=True → CenterCrop 224 → ToTensor FP32 → Normalize |
-| Normalize | mean/std из image processor той же model revision; значения сохранены в config, повторной нормализации нет |
-
-Задержанная загрузка/декодирование изображений, не весь dataset float-тензоров в RAM. Label mapping единый, метки torch.long. Collator возвращает pixel_values и labels; model не получает image/ID/служебные поля. Для Trainer фиксируем remove_unused_columns=False и label_names=[labels].
-
-Почему так: manifest фиксирует сами изображения, а полный рецепт transforms исключает различия из-за defaults разных библиотек.
-
-## 5. Диски и постоянное хранилище
-
-Исходный Parquet HF cache и рабочие checkpoints — на локальном диске runtime: /content в Colab, заданный local_work_dir на ПК. Каждая сессия переиспользует cache; каждый run отдельный процесс, без повторного скачивания при наличии cache. В первой версии нет streaming, отдельного архива поднабора или копии всего dataset через save_to_disk. Изображения на каждом batch с Drive не читаем.
-
-Постоянное хранилище — **одна папка Google Drive владельца проекта**, с доступом участников на запись в собственные каталоги executors/<executor_id>. Корневой каталог/реестр ведёт пользователь как координатор; разные пользователи не пишут одни и те же файлы. В Colab Drive монтируется. На ПК checkpoints всегда пишутся в постоянный local_work_dir, а готовый комплект артефактов после каждого run исполнитель вручную загружает в свою Drive-папку; координатор/analysis проверяет SHA-256 после чтения из общего хранилища. Это выбранный первый вариант для любых ОС, без установки Drive-клиента/rclone. Для переноса незавершённого run исполнитель вручную передаёт последний подтверждённый epoch bundle, включая resume и best_model. В завершённом облачном комплекте resume bundles не обязательны: best export/history/metadata/метрики/predictions и checksums обязательны по стадии; локальные resume сохраняются до приёмки результата. До LR search каждый исполнитель делает пробную запись/чтение/проверку хеша. Подключение Drive и выдача прав выполняются владельцами аккаунтов, их доступность ещё не проверена.
-
-Работающие на ПК обязаны иметь постоянный локальный checkpoint даже при задержке доставки в Drive; локальный диск ПК — подтверждённое постоянное хранилище, /content — нет. Для ПК незавершённая Drive-доставка не теряет checkpoint и не требует останавливать обучение, пока локальный файл подтверждён; финальная сборка требует подтверждённой доставки. Для Colab ошибка remote sync останавливает обучение по правилам раздела 9.
-
-До загрузки проверяем свободные RAM/диск; ориентир свободного локального диска 20 GB, но допуск определяется фактическим cache + временными копиями + запасом под checkpoints. Измеряем размер LP и LoRA resume bundles, резервируем место для последних двух версий и best всех назначенных runs. Drive-квоту также проверяем фактически; цифра adapter size не включает большой LP resume и optimizer state.
-
-Почему так: локальное чтение быстро и не зависит от мелких Drive I/O; постоянная копия переживает удаление Colab VM.
-
-## 6. Случайности данных и воспроизводимость
-
-Инициализация head, LoRA, sampler и model dropout используют разделённые управляемые RNG. Порядок train определяется seed и номером эпохи собственным sampler/generator, не случайностями создания адаптеров. Аугментации определяются устойчивым SHA-256 от seed/epoch/sample_id/version; локальный RNG-контекст восстанавливает внешние Python/NumPy/torch CPU states, не меняя поток model dropout. Встроенный Python hash не используем.
-
-DataLoader: num_workers=0, pin_memory=True на CUDA, persistent_workers=False, без скрытой параллельной генерации transforms. Датасет/самплер получает фактический номер эпохи до первого batch, включая resume. Проверяем совпадение ordered sample IDs и параметров crops/flip для одного seed между методами, LR-пробами и после восстановления. Между seed данные manifest те же, но shuffle/augmentations и начальные head/LoRA различаются. Dropout masks между разными архитектурами совпадать не обязаны.
-
-Полной побитовой воспроизводимости на разных GPU не обещаем. На одинаковом стеке/устройстве проверяем продолжение после границы эпохи против непрерывного запуска, с заранее записанными численными допусками, ID порядка и LR/global_step. Режим полной deterministic algorithms не включаем как дополнительное требование серии; фиксируем seeds/backend/math flags, cudnn.benchmark=False.
-
-Почему так: методы получают одинаковые входы одного seed, а код остаётся небольшим и восстановление не зависит от скрытых worker RNG.
-
-## 7. Batch, loss и вычислительный профиль
-
-Профиль общий для всей серии и закрепляется в runtime_profile.json до LR search. Порядок проверки фиксирован: microbatch16/accumulation32; при OOM microbatch8/accumulation64; затем microbatch4/accumulation128. Везде effective batch512. Если минимальный профиль не проходит, включаем non-reentrant gradient checkpointing для всех LoRA-методов, проверяем gradients и выбираем первый помещающийся профиль в том же порядке. LP использует тот же microbatch/accumulation; checkpointing ему не нужен при frozen backbone. Если и этот режим не помещается на устройстве, устройство не допускается к серии; автоматического изменения данных/эпох нет. Eval batch выбираем 32, при OOM 16, затем 8, единый для всей серии.
-
-Precision: FP32 model weights и AdamW states, CUDA AMP FP16 и GradScaler; SDPA без output_attentions, TF32 для matmul/cuDNN выключен, float32 matmul precision highest. Для всех площадок те же math flags/backend; если SDPA не работает на закреплённом стеке, bootstrap останавливается до изменения общего профиля. torch.compile, FlashAttention-пакет, BF16 и quantization в первой версии выключены. Первоначальная приёмка профиля — на Colab. Каждую локальную GPU допускаем отдельно перед её использованием с тем же профилем; предварительная проверка всех резервных ПК не блокирует Colab.
-
-Epoch train содержит 35 полных accumulation-групп по 512 и одну из 260 изображений: 36 attempted updates, 180 за пять эпох. Последний microbatch16 или8 содержит четыре изображения. Сохраняем все примеры: loss accumulation нормируется по числу изображений группы, без drop_last, padding или дублирования. Сначала проверяем эквивалентность gradients/update большого batch и накопления на маленьком детерминированном примере без dropout/AMP, включая неполную группу. Используем Trainer; если его loss handling не проходит проверку, в том же train.py задаём минимальную sample-weighted loss function/Trainer adjustment, не новый training loop. Scheduler считает согласованные updates, не микробатчи; фактические attempted/applied/skipped и LR сохраняем.
-
-Если после старта OOM вызван занятостью GPU/неподдержанным устройством, освобождаем ресурс либо переносим run на прошедшее проверку устройство с тем же профилем. Изменение microbatch/backend/precision только для одного метода запрещено; новый общий профиль оформляется новой версией и повторением зависимых runs.
-
-Почему так: одинаковый effective batch сохраняет режим оптимизации, а проверка нормировки не даёт последнему короткому batch случайно получить другой вес.
-
-## 8. Численная диагностика
-
-Optimizer явно `optim='adamw_torch'`, обычный AdamW. Default Trainer 4.57.1 на проверенном torch — fused AdamW; в намеренном AMP-overflow тесте он дал неверный skipped-флаг Accelerate. С явным обычным AdamW тест подтвердил неизменность весов при skip и корректный scheduler. Не полагаемся на default optimizer; основной train.py уже задаёт обычный вариант.
-
-Проверяем finite loss/logits и сохраняемых trainable weights. Для grad norm проверяем значения после unscale, clipping выполняется штатным AMP/Trainer-порядком. Логируем scaler и attempted/applied/skipped optimizer updates. Изолированный AMP skip допустим, scheduler не должен делать вид, что пропущенное optimizer update применилось: фактическое поведение стека проверяем и записываем.
-
-**Десять consecutive skipped updates** — фиксированный инженерный порог остановки с technical_failed: это около заметной части короткого run, причина требует диагностики. Он не означает, что LR доказанно плохой; не назначаем numerical_invalid только по skips и не заменяем кандидат другим LR. Нефинитные forward loss/logits либо веса означают numerical_invalid по протоколу. При восстановившихся после отдельного skip обновлениях run продолжается. На итоговую оценку допускаем валидные полностью завершённые пять эпох с явным числом пропусков; scheduler может иметь меньше applied steps, чем attempted, это отражаем в history.
-
-Никакого индивидуального спасения LR через другую precision. Исправление ошибки реализации или общий новый precision/profile документируется до повторения зависимых проб. После всех невалидных LR метода final блокируется.
-
-Почему так: единичная настройка scaler не становится ложным провалом, но run, который перестал обновлять веса, не тратит часы незаметно.
-
-## 9. Checkpoint, sync и resume
-
-Штатный Trainer checkpoint создаётся каждую эпоху: model/adapter+head, optimizer, scheduler, scaler при наличии, RNG и trainer state. Для LP resume сохраняет полный ViT штатным способом; компактный LP export содержит только head. Best export LoRA — PEFT adapter+classifier, FP32 safetensors; LP head также FP32 safetensors. Base model/processor revisions входят в export metadata, оригинальные веса не дублируем в LoRA export.
-
-Epoch bundle включает текущий resume, best_model в формате загрузки Trainer, компактный best export, best epoch/correct_count, history, config/data/code hashes и описание файлов с SHA-256. best_model для LP содержит полные веса ViT в штатном формате; файл одной head никогда не подставляем в Trainer.load_best_model как полный checkpoint. Для LoRA best_model использует PEFT-compatible формат. Optimizer state нужен у текущего resume, а не у отдельной best_model-копии. Best может быть из более ранней эпохи; его не теряем при ротации. Пути переносимые относительные; при копировании локально восстанавливаем ссылки Trainer best_model_checkpoint на существующий путь, затем проверяем reload. Resume заканчивается на суммарных пяти эпохах, не начинает новые пять.
-
-Выгрузка: локальный bundle → новая immutable папка epoch/attempt на постоянном хранилище → сверка файлов/размеров/SHA-256 → READY последним. На Drive не полагаемся на атомарное переименование. Для Colab максимум три попытки sync с паузами 5 и 15 секунд между ними; после третьей неудачи epoch loop останавливается до следующей эпохи и выдаёт interrupted/storage_sync_failed с последним подтверждённым номером эпохи. Защищён только подтверждённый bundle, а не «успешная» локальная запись в /content. Сохраняем последние две подтверждённые версии и best, старые удаляем лишь после подтверждения новой. Для ПК локальный постоянный bundle подтверждается сразу, Drive-доставка отслеживается отдельно.
-
-Перенос на другую GPU разрешён при тех же code/data/profile/package versions с записью оборудования по каждому segment; такой run не используется для сравнения времени/памяти с непрерывными. Accuracy остаётся результатом документированного процесса, а не обещанной побитовой репликой. Изменение профиля или вычислительного кода несовместимо с обычным resume и требует нового protocol/release решения.
-
-Почему так: сохраняется не только результат модели, но и место в процессе обучения. Проверка remote copy защищает от выбора недокопированного checkpoint.
-
-## 10. Идентичность runs и действия над результатом
-
-Run ID = hash canonical JSON: protocol_id, stage, config, seed, нормализованный числовой LR, data hash и runtime_profile hash. 1e-3 и 0.001 дают одну запись; абсолютные пути/GPU/исполнитель в hash не входят. Вычислительный release закреплён protocol manifest, actual code hash есть у каждой попытки. Новый существенный код/profile/data требует новой версии; обычный resume допускается только с тем же computational code hash. Изменение только документации не меняет его.
-
-Попытки хранятся отдельно. Один координатор назначает run ID, один исполнитель имеет активный attempt; скрипт отказывается перезаписывать verified completed outputs и незавершённую папку другого attempt. Слияние результатов делает только analysis. Никакой общей базы или конкурентного append CSV.
-
-Final проходит pending → training → trained → evaluating → completed. Ошибки: interrupted, technical_failed, numerical_invalid с причиной. LR search завершается статусом valid или numerical_invalid; прерванная проба ещё не даёт результата. Action evaluate загружает best без optimizer и обучения, проверяет hashes и дописывает недостающие predictions/norms/metrics; export также не меняет веса. Переоценка того же checkpoint не новый seed и не дополнительная попытка подбора.
-
-Test loader и метрики доступны только stage=final + protocol/freeze.json, где записаны hashes выбранных LR всех четырёх методов и окончательной очереди. Public test bytes могут оказаться в HF cache при скачивании: это не использование test. Technical и lr_search не создают test loader, не читают test labels для решений и не вычисляют test метрики.
-
-Почему так: сбой оценки не заставляет переучивать модель; пять сессий не портят один файл и не выдают один run за разные результаты.
-
-## 11. Распределение заданий
-
-Реестр assignments.json ведёт пользователь как координатор: run ID, исполнитель, device/profile, attempt, статус и ссылка. Исполнители запускают готовые команды одной release-версии, не изменяют configs. Для final единица назначения — LP/A/M/B одного seed; по возможности все четыре идут на одном устройстве. Порядок: seed42 LP→A→M→B; seed43 A→M→B→LP; seed44 M→B→LP→A, чтобы один метод не был всегда первым.
-
-Для LR search предпочтителен один тип GPU. Если недоступен, координатор распределяет блоки по одному LR для всех четырёх методов и ротирует устройства так, чтобы методы не закреплялись за одной картой. Доступность Colab не резервируем как гарантированную; после квот используем проверенные ПК. Передача готовых заданий происходит по границам runs; вынужденный mid-run перенос следует правилам resume. Отклонения от парных блоков сохраняются как hardware limitation, сравнение accuracy не объявляется побитовым экспериментом.
-
-Почему так: распределение ускоряет вычисления, не связывая результат метода постоянно с конкретной картой. Простого ручного реестра достаточно для 24 конфигураций.
-
-## 12. Артефакты и схема метрик
-
-```text
-experiment/
-  protocol/                 # manifest/labels/revisions/release/profile/runs/assignments/freeze
-  executors/<executor_id>/
-    runs/<run_id>/attempts/<attempt_id>/
-      config.json
-      environment.json      # hardware/package/code hashes по сегментам
-      status.json           # schema version, stage/action/status/reason
-      history.json          # epoch/step/loss/LR/scaler/applied/skipped
-      metrics.json          # correct_count/sample_count/accuracy/best epoch/timings/peaks
-      predictions.npz       # final: sample_id/true_label/pred_label + manifest hash
-      norms.json            # только final LoRA, best checkpoint
-      best/                 # компактный FP32 export, safetensors
-      checkpoints/          # последние два epoch bundles: resume + Trainer best_model + metadata
-      checksums.json
-      COMPLETE              # проверен полный комплект артефактов stage
-  results.csv               # производная сводка final
-  lr_trials.csv             # все 12 конфигураций поиска и их статусы
-```
-
-schema_version=1; stage/action/status/reason обязательны. Для каждой оценки храним correct_count/sample_count и accuracy fraction без округления, для presentation переводим в проценты. Best checkpoint определяется точным correct_count; tie-break — ранняя эпоха, затем меньший LR при выборе между пробами. MB=10^6 bytes, GiB=2^30 bytes. Размер export LoRA включает classifier, LP содержит head; resume sizes отдельно.
-
-Train/val fields обязательны для valid search и trained/final; test fields только для completed final, в остальных стадиях null, не 0. Не завершённые/численно невалидные attempts сохраняют доступную history и причину, без вымышленных итоговых метрик. Валидные низкие результаты сохраняем. COMPLETE для valid LR не требует predictions/norms; COMPLETE для final требует best+history+metadata+test predictions+metrics и norms для LoRA. Условия отбора в results.csv учитывают stage/status, не только marker.
-
-Почему так: отсутствие test не превращается в ложный нулевой результат, а CSV можно заново построить из независимых артефактов.
-
-## 13. Замеры и итоговая оценка
-
-Основной memory показатель — peak allocated/reserved **всего training job с периодической val**; подписываем train+val, не выдаём за чистый backward peak. Trainer memory tracking отключён (skip_memory_metrics=True), наши peak stats сбрасываются один раз после подготовки модели до train, не во вложенном evaluate. Для test отдельный свежий процесс без optimizer и отдельные peaks. Это проще и однозначнее сложного вложенного измерения train/val по отдельности.
-
-Время: фиксируем wall_train_job (включает val/checkpoint/sync), отдельно суммарные val/save/sync интервалы; train_loop_residual = job минус эти интервалы, с явно указанным включением чтения данных/логирования. Интервалы CUDA synchronize на границах; timing overhead одинаков для методов. Setup/download и test отдельно. Сравнение стоимости только при одинаковых GPU/math/batch/workers, условиях CPU/диска и warm-cache; иначе таблица фактических затрат с equipment, без строгого рейтинга методов. One process per run исключает пики от прежних моделей.
-
-Test: model.eval()+torch.inference_mode(), общий AMP FP16, детерминированные transforms, фиксированный порядок, без shuffle. Argmax и true labels сразу переносятся на CPU; все logits/активации и изображения на GPU не накапливаем. NPZ содержит ID/labels/predictions, shapes/dtypes проверяются, checksum сохраняется. Повторный evaluate не затирает подтверждённый результат без отдельной явной операции. Norms из best считаем в FP32 по одной матрице под no_grad, classifier исключён. Статистика — [05-analysis.md](05-analysis.md).
-
-Почему так: скорость не смешивается с Drive-копированием, память имеет однозначные границы, а для McNemar/bootstrap достаточно компактных предсказаний.
-
-## 14. Приёмка до массовых запусков
-
-Обязательные проверки перед LR search:
-
-1. Manifest/revisions/labels и детерминированные val/transforms; чтение всех выбранных train/val.
-2. Сборка LP/A/M/B: head hash, 48/24/72 модуля, ranks/scaling, whitelist, несколько optimizer steps и frozen weights.
-3. Sample-weighted accumulation для полной и неполной группы, фактический scheduler/applied steps, диагностика AMP skips.
-4. Короткий Both на Colab: профиль помещается, измерены train/inference скорости на train/val, бюджет пересчитан. Локальные GPU проходят такую проверку перед своим первым run; ждать все резервные ПК для начала Colab не требуется.
-5. Save→остановка→resume на границе условной эпохи; best reload, переносимые пути и правильный номер эпохи. Проверка на другой машине перед её допуском к resume.
-6. Sync partial copy/retry/READY, отказ Drive и сохранение предыдущей версии; достаточный локальный/постоянный диск.
-7. Evaluate/export из best без обучения на validation, schema/status/null fields, NPZ ID/order, отсутствие дублей при сборке CSV.
-8. Контроль test gate: technical/lr_search не могут создать test loader, final без freeze заблокирован.
-
-Это короткие инженерные проверки на поднаборах, не дополнительные полноценные обучения и не подбор эпох. После приёмки 24 запланированных runs запускаются без ручного изменения конфигураций. Размер GPU, права Drive, полный version lock, model/dataset SHA и фактическое время — остаются фактами для измерения/получения в bootstrap, а не невыбранными вариантами архитектуры.
-
-Основания: [PEFT LoRA](https://huggingface.co/docs/peft/main/package_reference/lora), [ViT 4.57.1](https://github.com/huggingface/transformers/blob/v4.57.1/src/transformers/models/vit/modeling_vit.py), [Trainer](https://huggingface.co/docs/transformers/main_classes/trainer), [PEFT checkpoint](https://huggingface.co/docs/peft/main/developer_guides/checkpoint), [PyTorch reproducibility](https://docs.pytorch.org/docs/2.15/notes/randomness.html), [Colab FAQ](https://research.google.com/colaboratory/faq.html?hl=en). Конкретный API сверяем с выбранными закреплёнными версиями; main-документация не заменяет requirements lock.
-
-## Состояние реализации на 26.11.2026
-
-Реализованы bootstrap, сборка PEFT LP/A/M/B, synthetic smoke и data.py: создание/проверка manifest, PCG64-выборка, хеши image bytes, точные transforms, изолированные RNG и EpochSampler. Colab notebook и архив исходников дополнены этапом подготовки данных. Зависимости данных: datasets=4.2.0; requirements остаётся кандидатом до GPU-приёмки.
-
-Фактически выполнены: 10 unittest-проверок без пропусков, включая PCG64-баланс, tamper/overlap checks, восстановление RNG без изменения CUDA generator, детерминированность crops/val/sampler, collator. Реальный PEFT/ViT-Base с 12 блоками прошёл по три forward/backward steps для LP/A/M/B на CPU, на синтетических входах 32×32 и отдельно 224×224. Проверены ranks/alpha/scaling, 48/24/72 адаптера, параметры, одинаковая начальная head, gradients и неизменность frozen weights. CPU evidence: artifacts/cpu-smoke-20261126.json, cpu-smoke-224-20261126.json, environment-20261126.json и cpu-freeze-20261126.txt. CPU-runtime размещён в .runtime/, не /tmp, чтобы переживать перерывы.
-
-На бесплатном Colab фактически проверена Tesla T4, 14,56 GiB VRAM. Изолированный venv Python 3.13.16 / torch 2.8.0+cu126 / torchvision 0.23.0+cu126 / Transformers 4.57.1 / PEFT 0.17.1 не заменяет пакеты kernel. В Colab отсутствовал ensurepip: используем venv --without-pip и host pip --python. Полный pip freeze сохранён как evidence, ещё не окончательный общий lock.
-
-LP/A/M/B прошли по три успешных optimizer updates на синтетических входах 224×224 с CUDA/AMP; проверены head/gradients/frozen weights. Первая версия smoke ошибочно останавливала проверку при стартовом overflow FP16. Исправлено: GradScaler пропускает попытку и снижает scale; счётчик успешных updates не увеличивается, десять skips подряд дают technical failure. При повторной проверке каждый метод пропустил одну попытку (65536→32768), затем успешно обновился три раза. Исходная ошибка сохранена для аудита, не объявлена расходимостью метода.
-
-Both с batch16/accumulation32: три успешных updates без skips/OOM, peak allocated 2,0335 GiB, reserved 2,1016 GiB, 16,29 с на синтетический цикл. Профиль пока не включает реальное чтение изображений, validation и Trainer и не заменяет измерения для пересчёта бюджета. Pretrained Both также прошёл три updates на CUDA; закреплён model SHA b4569560a39a0f1af58e3ddaf17facf20ab919b0. Evidence: artifacts/colab-T4-20261126/, включая SOURCE_MANIFEST, environment, pip-freeze, gpu-smoke, profile и pretrained-smoke; файлы перенесены с проверкой SHA-256. Проверенный source release: 839e471a2f4390ad4d8bd08e789c3aa260570cd43060afb582cbce47f5df544e; последующее редактирование документации не означает повторной GPU-проверки нового архива.
-
-Создан manifest исходного Food-101: dataset SHA 83488de741c1bd1ce27aa6a2b33e19c7bdf92ca9, manifest hash 8337fa066463bd272d5609998187f1f8cc730f3fa23c0eabdb7c555449e9c0cf. Независимая CPU/Colab подготовка дала один хеш. Все 18 180 train / 2 020 val с балансом 180/20 прошли hash/label/decode/transforms/collator checks, проверены RNG и sampler. Общий artifacts/data-protocol.zip включает manifest и revisions/checksums без изображений; импорт в notebook проверяет состав/хеши и отказывает при конфликте с имеющимся protocol. Test loader не создавался; official validation может быть подготовлен библиотекой как часть cache без оценки метрик.
-
-Реализован train.py с ImageTrainer/compute_loss_func и sample-weighted CE, EpochSampler, argmax-метриками, UpdateAudit и technical-only CLI. На T4 Both прошёл две условные эпохи 772 train / 32 val: группы 512+260, четыре applied steps без skips, val/checkpoint после каждой эпохи и best reload. Wall train job 31,337 с, val 1,285 с, checkpoints 0,504 с, train+val allocated/reserved 2,312/2,496 GiB. Поднабор по первым ID не служит сравнению accuracy/LR; полный профиль train-18180/val-2020 этим не заменяется.
-
-В Colab прошли все 13 unittest: включая эквивалентность большого batch/accumulation с неполной группой, epoch resume с dropout/sampler на маленькой CPU-модели и намеренный CUDA AMP skip без продвижения scheduler. На локальном CPU проходят 12, CUDA-тест пропускается. Реальные PEFT/LP resume и перенос пути этим ещё не подтверждены. Evidence: artifacts/colab-Trainer-20261126/ и artifacts/data-acceptance-local-20261126.json. Trainer/data source release 7d6a39ef84b535f2c8aae3a167ac4b5504bbadff9820f0cf04f8bb1eaad1823b; 13 tests source release a2f9f00b28691d4f4c4468b079fbb1ba4cf9fad956398ef85e7d44b67d0e2f6a. Train/data/configs/check_data/requirements между ними совпадают; manifests сохранены. Последующие изменения документации не считаются повторным запуском.
-
-Не выполнены: production train/resume/evaluate/export, переносимый resume настоящих PEFT/LP checkpoints, sync/READY, полный профиль train+val и допуск локальных GPU, final gate и статистика. Технические losses/accuracy не являются исследовательским результатом. Массовые LR runs пока запрещены.
-
-
-## Локальная реализация LR search (26.11.2026)
-
-train.py допускает technical и lr_search; научный запуск берётся только из runs.json,
-читает полный manifest, 5 эпох, seed142 и один из трёх LR. Probe/stop/dummy/resume
-аргументы в lr_search отвергаются. Штатные локальные Trainer checkpoints и compact
-best export; test loader не создаётся. Numerical_invalid записывается и не удаляется,
-technical failure останавливает очередь. COMPLETE/hashes подтверждают разрешённый
-исход; низкая accuracy остаётся valid. Все три invalid LR блокируют final метода.
-
-experiment.py валидирует pins/source/profile и полное покрытие 12 заданий;
-run_queue.py создаёт план, выполняет preflight/последовательную очередь одного ПК,
-проверяет готовые результаты, повторяет незавершённые только по --retry-failed и
-собирает LR. Final CLI/freeze/test evaluation пока не реализованы. Допуск реальных
-трёх GPU ещё нужен; CPU integration test проверяет полный размер/5 эпох/180 updates
-на маленькой модели и не является научным результатом.
+| study_configs.py | единственный реестр шести моделей, ranks/alpha, PEFT/ViT, whitelist/freeze/head и scientific recipe |
+| study_runtime.py | профиль, immutable data pins, фактический GPU/package environment, admission и queue lock |
+| data.py | manifest, transforms, isolated RNG, EpochSampler и collator; только train/val |
+| study_trainer.py | штатный Trainer с sample-weighted loss, sampler, timings и applied/skipped audit |
+| study_protocol.py | code/data/profile hashes, планы24/18, LR selection provenance и freeze |
+| study_train.py | worker полного manifest,10 эпох, export и terminal status; test loader отсутствует |
+| study_results.py | stage-aware checksum verification, выбор LR и сбор trained-моделей |
+| study_queue.py | единый coordinator CLI и локальные очереди, процессы/retries/preflight |
+| study_check.py | gradients/freeze всех шести конфигураций и технический pretrained B-16 |
+| file_utils.py | SHA256, exclusive JSON writes, compact LP/PEFT best export |
+| bootstrap.py / check_data.py | приёмка окружения/диска и всех selected images |
+| package_protocol.py / package_study.py | общий data protocol и source-only release |
+
+## Общие примитивы
+
+Сборка PEFT одна для всех placements/ranks. До обёртки проверяются точные имена
+и формы Linear, отдельно инициализируется head. После неё проверяются ranks,
+alpha/r=1, active head и точный набор trainable IDs. Базовые веса заморожены;
+совместно с адаптерами обучается classifier. M-16 — alias M-iso, не новая модель.
+
+Trainer и Accelerate выполняют обучение/AdamW/AMP/scheduler/checkpoints.
+compute_loss_func нормирует сумму CE по числу изображений всей accumulation-группы,
+включая последнюю группу260. EpochSampler передаёт номер эпохи датасету;
+shuffle/crops/flip совпадают между методами одного seed. LoRA dropout остаётся
+случайностью модели, не перезаписывается RNG аугментаций.
+
+Перед запуском worker проверяет release/plan/protocol/admission и assignment.
+В scientific CLI нет произвольных LR/seed/epochs/subset/ранней остановки.
+Технический subset существует только в study_check, не в scientific worker.
+
+## Артефакты
+
+LR создаёт config/environment/status/history/updates/metrics/best, checksums.json
+и COMPLETE последним. Валидный result требует десять полных val-оценок,
+360 attempted updates, согласованные applied/skipped/scheduler и ранний best при ties.
+
+Final сохраняет TRAINED/training_checksums и immutable training_status.json.
+status.json — отдельный progress для будущей evaluation. Metrics/best обучения
+не переписываются test-данными. Численно невалидный final блокирует серию.
+Предсказания test и итоговый COMPLETE требуют отдельного этапа evaluation,
+который пока не реализован.
+
+Штатные локальные Trainer checkpoints сохраняются для выбора и загрузки best,
+но переносимое продолжение/remote sync не являются функциями проекта.
+Компактный export — LP head или PEFT adapter+classifier в FP32 safetensors.
+Частичные/повреждённые артефакты не принимаются и не чинятся пересчётом hashes.
+
+## Время, память и версия
+
+Training job измеряется вокруг Trainer.train(), включая val/checkpoint/best reload.
+CUDA synchronize на границах измерения. Setup и export отдельно. GPU peaks
+сбрасываются один раз до train и относятся к train+val, без вложенных reset.
+Стоимость сравнивается внутри одинаковых GPU/profile/CPU/disk/cache.
+
+Все вычислительные файлы перечислены в study_protocol.SOURCE_FILES. Изменение
+реализации требует нового общего плана/архива до серии и повторного preflight.
+Документация/тесты не меняют computational hash; source archive имеет отдельный
+manifest всех распространяемых файлов. Передача metadata сохраняет исходные байты.

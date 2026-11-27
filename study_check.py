@@ -1,13 +1,37 @@
 """V2 GPU acceptance: all six parameter/gradient checks and real pretrained B-16."""
 import argparse
 import gc
+import hashlib
 from pathlib import Path
 import time
 
-from checkpoints import write_json
+from file_utils import write_json
 from study_configs import CONFIGS, configure_model, audit_model, active_head, load_model, MODEL_ID
 from study_protocol import read_plan
-from test_params import frozen_hash
+
+
+def frozen_hash(model):
+    digest = hashlib.sha256()
+    for name, p in model.named_parameters():
+        if not p.requires_grad:
+            digest.update(name.encode())
+            digest.update(p.detach().cpu().contiguous().numpy().tobytes())
+    return digest.hexdigest()
+
+
+class TechnicalSubset:
+    """Preflight-only subset; scientific workers always use the complete manifest."""
+    def __init__(self, dataset, size):
+        self.dataset, self.size = dataset, min(size, len(dataset))
+
+    def __len__(self):
+        return self.size
+
+    def set_epoch(self, epoch):
+        self.dataset.set_epoch(epoch)
+
+    def __getitem__(self, index):
+        return self.dataset[index]
 
 
 def parameter_check(name, device, image_size=224):
@@ -99,7 +123,7 @@ def technical_check(plan_path, protocol, output):
     import torch
     from transformers import AutoImageProcessor
     from data import read_manifest, official_train, ManifestDataset, collate_fn
-    from train import ImageTrainer, UpdateAudit, PrefixDataset, classification_metrics, argmax_logits
+    from study_trainer import ImageTrainer, UpdateAudit, classification_metrics, argmax_logits
     from study_train import _arguments, configure_runtime, clean_json
     if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
         raise ValueError('V2 real-data preflight requires exactly one visible CUDA GPU')
@@ -115,8 +139,8 @@ def technical_check(plan_path, protocol, output):
     if source.features['label'].names != manifest['label_names']:
         raise ValueError('Technical source labels differ')
     processor = AutoImageProcessor.from_pretrained(MODEL_ID, revision=common['model_revision'], use_fast=False)
-    train = PrefixDataset(ManifestDataset(source, manifest, 'train', processor, 42), 772)
-    val = PrefixDataset(ManifestDataset(source, manifest, 'val', processor, 42), 32)
+    train = TechnicalSubset(ManifestDataset(source, manifest, 'train', processor, 42), 772)
+    val = TechnicalSubset(ManifestDataset(source, manifest, 'val', processor, 42), 32)
     model = load_model('B-16', 42, common['model_revision'], manifest['label_names'])
     output.mkdir(parents=True)
     write_json(output/'technical-config.json', {'stage': 'technical', 'scientific_result': False,

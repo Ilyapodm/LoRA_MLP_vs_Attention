@@ -2,8 +2,9 @@
 
 Редакция 27.11.2026. Это инструкция **активного** протокола food101-local-v2.
 Научное описание — [02-protocol.md](02-protocol.md), анализ — [05-analysis.md](05-analysis.md).
-Старые 07/08 описывают пятиэпоховый пилот v1. Его исходники, runs.json и results
-не изменяются и не используются как десятиэпоховые пробы v2.
+Старые сценарии удалены из рабочего дерева; полный снимок до чистки — Git
+`1c074e7`. Пилотные results/rtx* не удалены и не используются как десятиэпоховые
+пробы v2. Актуальный CLI один: study_queue.py.
 
 ## Что запускаем
 
@@ -180,7 +181,7 @@ wall_train_job включает train+val+checkpoint+best reload. Export и setu
 python package_study.py --output artifacts/study-v2-source.zip
 ```
 
-Архив содержит исходники, tests/docs и оба плана LR (v1 для истории и активный
-v2), manifest с hashes; без результатов, весов, cache, venv и .git. Data protocol
+Архив содержит только актуальные исходники, tests/docs и общий план LR v2,
+manifest с hashes; без устаревших сценариев, результатов, весов, cache, venv и .git. Data protocol
 передаётся отдельно прежним data-protocol.zip. Final-план и freeze появятся позже,
 после 24 LR-исходов, и передаются отдельно.

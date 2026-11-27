@@ -3,7 +3,7 @@ import json
 import math
 from pathlib import Path
 
-from checkpoints import file_hash, write_json
+from file_utils import file_hash, write_json
 from data import canonical_hash
 from study_configs import CONFIGS, EPOCHS, SERIES
 from study_protocol import config_record, steps_per_epoch, portable_selection, validate_selection

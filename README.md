@@ -56,7 +56,10 @@ python study_queue.py --run --plan runs-v2.json --executor rtx3060 --admission �
 
 ## Реализовано
 
-- study_configs.py — шесть моделей, две серии, alias M-16, рецепт и 18 гипотез.
+- study_configs.py — шесть моделей, PEFT-сборка, targets/ranks/freeze/head, две серии и18 гипотез.
+- study_runtime.py — общий профиль, data pins, CUDA/package admission и локальный lock.
+- study_trainer.py — общий Trainer, sample-weighted loss, sampler, timings и AMP audit.
+- file_utils.py — hashes, эксклюзивные JSON и компактный best export.
 - study_protocol.py — release/data/profile hashes, 24 LR / 18 final, selection/freeze.
 - study_train.py — full-data LR/final, 10 val-эпох, 360 updates, best и диагностика.
 - study_results.py — строгая приёмка и сбор; LR COMPLETE / final TRAINED.
@@ -85,16 +88,17 @@ CPU integration использует маленькие модели при по
 Это не научная accuracy и не подтверждение памяти/скорости новой GPU-конфигурации;
 на каждой карте перед v2 нужен реальный preflight.
 
-## Пилот v1 сохранён
+## История и локальный сценарий
 
-Исходные configs.py/data.py/train.py/experiment.py/run_queue.py и старые final_*.py
-оставлены без изменений. runs.json и results/rtx* — пятиэпоховый пилот с четырьмя
-методами и тремя LR. Не смешивать с v2 и не пересоздавать checksums под изменённые
-файлы. Неурегулированное расхождение environment.json RTX3090 остаётся вопросом
-приёмки пилота; v2 выполняется с начала и требует собственные неизменяемые отчёты.
+Рабочее дерево содержит только актуальную серию v2. Старые пятиэпоховые CLI,
+конфигурации, Colab notebook/bootstrap, переносимые bundles/remote sync и их
+тесты удалены. Полный снимок до чистки сохранён коммитом `1c074e7`.
+При необходимости исследовать исторический код/планы использовать Git.
 
-Исторические инструкции: [07](lora_docs_updated/07-local-runs.md),
-[08](lora_docs_updated/08-final-runs.md),
-[архив протокола](lora_docs_updated/archive/v1-02-protocol.md).
-colab.ipynb/package_bootstrap.py относятся к старому bootstrap, не запускают v2.
-Необязательные переносимые resume/Drive-sync не входят в основной локальный сценарий.
+Результаты пилота в results/rtx*, dataset/cache/venv и локальные доказательства
+не удалялись. Их metadata/checksums не переписываются. Текущие команды работают
+с results/v2 и не принимают старые schema1 результаты.
+
+После изменения вычислительного release нужен новый общий runs-v2.json и новый
+preflight каждой GPU. Не смешивать уже выданный архив/план до чистки с текущими
+исходниками. Во время научной серии использовать фиксированный checkout/архив.

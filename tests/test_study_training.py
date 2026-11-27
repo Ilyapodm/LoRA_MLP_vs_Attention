@@ -125,7 +125,7 @@ class StudyTrainingTests(unittest.TestCase):
                 execute_training(torch.nn.Linear(3, 101), range(772), range(32),
                                  args, output, plan, run, {})
             self.assertFalse(output.exists())
-            with patch('train.ImageTrainer.train', side_effect=KeyboardInterrupt):
+            with patch('study_trainer.ImageTrainer.train', side_effect=KeyboardInterrupt):
                 with self.assertRaises(KeyboardInterrupt):
                     execute_training(torch.nn.Linear(3, 101), range(18180), range(2020),
                                      args, output, plan, run, {})
@@ -149,7 +149,7 @@ class StudyTrainingTests(unittest.TestCase):
                 validation_seconds=0, checkpoint_seconds=0, train=Mock(side_effect=RuntimeError('original failure')))
             with patch('study_train.training_arguments', return_value=args), \
                     patch.object(type(args), 'device', property(lambda _: torch.device('cuda'))), \
-                    patch('train.ImageTrainer', return_value=trainer), \
+                    patch('study_trainer.ImageTrainer', return_value=trainer), \
                     patch('torch.cuda.reset_peak_memory_stats'), \
                     patch('torch.cuda.synchronize', side_effect=[None, RuntimeError('context lost')]):
                 with self.assertRaisesRegex(RuntimeError, 'original failure'):

@@ -1,7 +1,7 @@
 # Готовность и риски v2
 
 Редакция27.11.2026. Научный контракт — [02](02-protocol.md), запуск — [09](09-v2-runs.md).
-Старый checklist сохранён в archive/v1-06-risks-and-checklist.md.
+Старый checklist и удалённые сценарии доступны в Git, снимок до чистки `1c074e7`.
 
 ## Реализовано и проверяется локально
 
@@ -17,7 +17,7 @@
       ранний best, LP/PEFT export, numerical_invalid/interruption.
 - [x] Реальная ViT-сборка A-16/B-16 на CPU: параметры/gradients/frozen weights.
 - [x] 18 гипотез McNemar/Holm и bootstrap зафиксированы в scientific recipe.
-- [x] Исходники/артефакты/план v1 сохранены; приёмка pilot metadata не ослаблена.
+- [x] Снимок прежнего кода/плана сохранён в Git; pilot artifacts не изменены и не смешиваются с v2.
 
 ## До научной серии v2
 

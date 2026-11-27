@@ -9,18 +9,17 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from checkpoints import write_json
+from file_utils import write_json
 from data import canonical_hash
-from experiment import make_plan as make_pilot_plan
-from study_configs import (CONFIGS, SERIES, ALIASES, LR_GRID, EPOCHS, FINAL_SEEDS,
-                           canonical_config, configuration_specs)
+from study_configs import (CONFIGS, SERIES, LR_GRID, EPOCHS, FINAL_SEEDS,
+                           canonical_config, configuration_specs, targets)
 from study_protocol import (make_lr_plan, validate_plan, read_plan, make_final_plan,
                             write_final_files, validate_freeze, config_record,
-                            steps_per_epoch, source_manifest, validate_selection, portable_selection)
+                            steps_per_epoch, validate_selection, portable_selection)
 from study_results import (seal_result, read_result, collect_search_results,
                            collect_final_results)
 from study_queue import execute_queue, validate_admission, preflight
-from test_experiment import protocol
+from study_fixtures import protocol
 
 
 def fixture(root):
@@ -79,6 +78,15 @@ class StudyDesignTests(unittest.TestCase):
         self.assertEqual([specs[n]['trainable_parameters'] for n in SERIES['rank16']],
                          [1257317, 1552229, 2731877])
         self.assertEqual((specs['A-16']['adapter_count'], specs['B-16']['adapter_count']), (48, 72))
+        for name, config in CONFIGS.items():
+            chosen = targets(config)
+            self.assertEqual(sum(rank*(n_in+n_out) for rank, n_in, n_out in chosen.values()),
+                             config.lora_parameters)
+            for layer in range(12):
+                self.assertEqual(sum(f'.layer.{layer}.' in key for key in chosen), len(chosen)//12)
+        both = targets(CONFIGS['B-iso'])
+        self.assertEqual(sum(r*(a+b) for key, (r, a, b) in both.items() if '.attention.' in key), 737280)
+        self.assertEqual(sum(r*(a+b) for key, (r, a, b) in both.items() if '.attention.' not in key), 737280)
         with tempfile.TemporaryDirectory() as d:
             _, plan = fixture(Path(d))
             stats = plan['common']['statistics']
@@ -111,7 +119,7 @@ class StudyDesignTests(unittest.TestCase):
                 with self.subTest(target=target), self.assertRaises(ValueError):
                     validate_plan(bad)
             with self.assertRaisesRegex(ValueError, 'pilot v1'):
-                validate_plan(make_pilot_plan(proto))
+                validate_plan({'schema_version': 1})
             files = dict(plan['source_files'], **{'study_train.py': '0'*64})
             with patch('study_protocol.source_manifest', return_value=files):
                 with self.assertRaisesRegex(ValueError, 'Code changed'):

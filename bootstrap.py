@@ -43,7 +43,7 @@ def main():
             if hashlib.sha256(f.read_bytes()).digest()!=hashlib.sha256(payload).digest():
                 raise RuntimeError('Storage readback mismatch')
         info['storage_probe'] = {'path':str(a.storage.resolve()), 'readback_verified':True,
-                                 'note':'does not prove remote cloud sync from a PC'}
+                                 'note':'local disk write/read integrity only'}
     a.output.parent.mkdir(parents=True, exist_ok=True)
     a.output.write_text(json.dumps(info, indent=2)+'\n')
     print(json.dumps(info, indent=2))

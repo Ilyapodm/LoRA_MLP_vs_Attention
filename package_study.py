@@ -4,9 +4,8 @@ import json
 from pathlib import Path
 import zipfile
 
-from checkpoints import file_hash
+from file_utils import file_hash
 from data import canonical_hash
-from package_bootstrap import FILES as BOOTSTRAP_FILES
 from study_protocol import SOURCE_FILES, read_plan
 
 
@@ -22,10 +21,10 @@ def main():
         p.error('Source bundle requires the v2 LR plan')
     if args.plan.resolve().parent != root:
         p.error('Keep the shared LR plan in the project root before packaging')
-    files = set(BOOTSTRAP_FILES) | set(SOURCE_FILES) | {
+    files = set(SOURCE_FILES) | {
         '.gitattributes', '.gitignore', 'package_study.py', args.plan.name,
-        'final_protocol.py', 'final_train.py', 'final_results.py', 'final_queue.py',
-        'tests/test_final.py', 'tests/test_final_training.py',
+        'README.md', 'package_protocol.py',
+        'tests/study_fixtures.py', 'tests/test_data.py', 'tests/test_trainer.py',
         'tests/test_study.py', 'tests/test_study_training.py'}
     files.update(path.relative_to(root).as_posix() for path in (root/'lora_docs_updated').rglob('*.md'))
     hashes = {name: file_hash(root/name) for name in sorted(files)}

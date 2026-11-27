@@ -2,22 +2,19 @@
   "schema_version": 2,
   "stage": "lr_search",
   "source_files": {
-    "configs.py": "c08825b3fbae8fe6e45f033f20aa28028348c4a341cde1cf7da7e5df00f091e7",
+    "file_utils.py": "2b5d9d067539f0d4e3ab11da55c88e75cc557fafe387ed9bd759827bac5339fd",
     "data.py": "082f56bce5ede0f62ec53091de1c996a38e89cc48a98b2218e58ba5ecbeca0af",
-    "train.py": "4c0d0c192169ee395dc4a7ffd541f940b90412a06bfc290fe895f7a1cebdb10d",
-    "checkpoints.py": "c9219cd6a545fad04afafc160d8679ee4390a01e6e8a80714e4fb3b78cfebbd8",
-    "experiment.py": "7a3c5e71eda130d5d460e2168d46b6b41833b250da513bc40b40df35059d66a8",
-    "run_queue.py": "2931f8acdeb275eccf64fae94de919dabc58d3268c7723f4bdb6582cfeb539a3",
-    "bootstrap.py": "9816925d13445c12f7e9c8885ede1d4625c4c9e693234e73fcf1d5a51f527dff",
-    "check_data.py": "87be6a8f823716a9a760fd8e31847ed2a72659b38221c7fcc1958ba4f6fae9a5",
-    "test_params.py": "3cd99c2c6bb48aefb888f5f197742cd464b683bf60d78a110edeeda74a6ed86e",
-    "requirements.txt": "c591be6d1a9c767c9a9dbf3cfebc8a8f178ca91311af5da73deb4f7313d7f275",
-    "study_configs.py": "28e2a3e80cc2b270983bd8ad16c211cf812d87cb1aeb8e89c4affc9c807920bf",
-    "study_protocol.py": "222f421605fc786f90334834bbec5607952834181539246d88df9823bad09d01",
-    "study_results.py": "71faf2ab6238cc251d869c1136ddcea48ce75ade89afd8a1a4e435cbd14195aa",
-    "study_train.py": "8a75ea638ee46ee8f820e616759fdc001198c24fa272367f4f2aca8c4514d396",
-    "study_queue.py": "d495223b2c8b04d18bfff7208432d17cf0daa780488a7f7bf3f3ccd4f5e29014",
-    "study_check.py": "42b0ee97ee35129419e0e5ad0810be622338a6c818e720e0f83b0aec45cfc013"
+    "study_configs.py": "b643458789f307b88972557d6a4f117fe13257456c3c988e6dd34a694cc67c1e",
+    "study_runtime.py": "869479c3f5bdc5d0780dead0493f2c3f85b22674206888956c02d1ba30de2df7",
+    "study_trainer.py": "a869b12c7bf708e73d3ec1842416d2ad9a1c93c1374c0bd23c11ff95e6f3e36d",
+    "study_protocol.py": "9e9bc73281fd36012043d18681f1cbd1a3b5a1eaa987a76c60e241f7c1b0c656",
+    "study_results.py": "52a75cfd1537ca303051d7fc29d438c2c6974e08f6415d559e60bab775168500",
+    "study_train.py": "0a6638c399e79e269dd937edf094775b73e4d046268c25cbfde1e9bdfedd17d9",
+    "study_queue.py": "bdd2cb841f6adf28acb968fc09e3b6c008580a49a62aa630128ce67b5af8817f",
+    "study_check.py": "e45ecf907ac1f3e97e3815126cb8480fd3dc20695fc3311a46be38efa3098b1d",
+    "bootstrap.py": "5e5b4419a2279af6667f1951e8af537b8b3a011571c0eef7d46fc0fe028b6d6b",
+    "check_data.py": "f0e580448dc060402455ca25e11d2e22d61c77af5793f4158c91ec912c309063",
+    "requirements.txt": "c591be6d1a9c767c9a9dbf3cfebc8a8f178ca91311af5da73deb4f7313d7f275"
   },
   "common": {
     "protocol_version": "food101-local-v2",
@@ -264,11 +261,11 @@
       "tf32": false,
       "workers": 0
     },
-    "source_hash": "70359e92d4eeb40fecec668dfb4574cd11aefc4103ff026b1782b1a8fa9993d2"
+    "source_hash": "4ca93496c63526e795ffef0f07adae2fde7f44adfb555d86f548eb92fe7a1c58"
   },
   "runs": [
     {
-      "run_id": "v2-lr-a84eb3067e6cab83d838",
+      "run_id": "v2-lr-35c96c1a6ba5b6319643",
       "stage": "lr_search",
       "config": "LP",
       "lr": 0.0001,
@@ -276,7 +273,7 @@
       "executor": "rtx4070ti"
     },
     {
-      "run_id": "v2-lr-6c883735f26a446d7375",
+      "run_id": "v2-lr-9d7dcac4e2983c332650",
       "stage": "lr_search",
       "config": "LP",
       "lr": 0.001,
@@ -284,7 +281,7 @@
       "executor": "rtx3090"
     },
     {
-      "run_id": "v2-lr-60aba9326312d534e06b",
+      "run_id": "v2-lr-40e0eaef6b62f135aaf0",
       "stage": "lr_search",
       "config": "LP",
       "lr": 0.01,
@@ -292,7 +289,7 @@
       "executor": "rtx3060"
     },
     {
-      "run_id": "v2-lr-21c98176d4e9e7d932b6",
+      "run_id": "v2-lr-cb6795d95583de74183a",
       "stage": "lr_search",
       "config": "LP",
       "lr": 0.03,
@@ -300,7 +297,7 @@
       "executor": "rtx4070ti"
     },
     {
-      "run_id": "v2-lr-e9c4676b2e6dac45a525",
+      "run_id": "v2-lr-cc453e2bf68313943e53",
       "stage": "lr_search",
       "config": "A-iso",
       "lr": 0.0001,
@@ -308,7 +305,7 @@
       "executor": "rtx3060"
     },
     {
-      "run_id": "v2-lr-e60b8dca8cde539aa52d",
+      "run_id": "v2-lr-0d382943c7e7966b0093",
       "stage": "lr_search",
       "config": "A-iso",
       "lr": 0.001,
@@ -316,7 +313,7 @@
       "executor": "rtx4070ti"
     },
     {
-      "run_id": "v2-lr-ccaa9bc9b879691719d8",
+      "run_id": "v2-lr-aefe13515ddfeca183a0",
       "stage": "lr_search",
       "config": "A-iso",
       "lr": 0.01,
@@ -324,7 +321,7 @@
       "executor": "rtx3090"
     },
     {
-      "run_id": "v2-lr-b9721bed1a840f7648b3",
+      "run_id": "v2-lr-f483172ac1246de68848",
       "stage": "lr_search",
       "config": "A-iso",
       "lr": 0.03,
@@ -332,7 +329,7 @@
       "executor": "rtx3060"
     },
     {
-      "run_id": "v2-lr-a0a1ab5088d6d400c9db",
+      "run_id": "v2-lr-6cd6b0d3f4cf9f23a9ab",
       "stage": "lr_search",
       "config": "M-iso",
       "lr": 0.0001,
@@ -340,7 +337,7 @@
       "executor": "rtx3090"
     },
     {
-      "run_id": "v2-lr-b0a66863fc13515c99ff",
+      "run_id": "v2-lr-df87a1abb72dc4bc8400",
       "stage": "lr_search",
       "config": "M-iso",
       "lr": 0.001,
@@ -348,7 +345,7 @@
       "executor": "rtx3060"
     },
     {
-      "run_id": "v2-lr-3f0ca12eb5121069df4f",
+      "run_id": "v2-lr-e5be14ec85d4cf78dd51",
       "stage": "lr_search",
       "config": "M-iso",
       "lr": 0.01,
@@ -356,7 +353,7 @@
       "executor": "rtx4070ti"
     },
     {
-      "run_id": "v2-lr-b6ee960996cbddef0faf",
+      "run_id": "v2-lr-40df9fd484f173d051fe",
       "stage": "lr_search",
       "config": "M-iso",
       "lr": 0.03,
@@ -364,7 +361,7 @@
       "executor": "rtx3090"
     },
     {
-      "run_id": "v2-lr-fd4c339cd9ea52543436",
+      "run_id": "v2-lr-41ada2ca7f5cfb30c94b",
       "stage": "lr_search",
       "config": "B-iso",
       "lr": 0.0001,
@@ -372,7 +369,7 @@
       "executor": "rtx4070ti"
     },
     {
-      "run_id": "v2-lr-7f6847b43ca7e5588431",
+      "run_id": "v2-lr-e42329aa6b4a5ad9159c",
       "stage": "lr_search",
       "config": "B-iso",
       "lr": 0.001,
@@ -380,7 +377,7 @@
       "executor": "rtx3090"
     },
     {
-      "run_id": "v2-lr-77116462cf02d80f8ee4",
+      "run_id": "v2-lr-d4e319d88068e43ddb24",
       "stage": "lr_search",
       "config": "B-iso",
       "lr": 0.01,
@@ -388,7 +385,7 @@
       "executor": "rtx3060"
     },
     {
-      "run_id": "v2-lr-fdc7e6e1f0d6b6a049c5",
+      "run_id": "v2-lr-72a2d3ae28d9044797ca",
       "stage": "lr_search",
       "config": "B-iso",
       "lr": 0.03,
@@ -396,7 +393,7 @@
       "executor": "rtx4070ti"
     },
     {
-      "run_id": "v2-lr-4b8c871da95914bbf7c1",
+      "run_id": "v2-lr-6c3a80b60d82f631f19f",
       "stage": "lr_search",
       "config": "A-16",
       "lr": 0.0001,
@@ -404,7 +401,7 @@
       "executor": "rtx3060"
     },
     {
-      "run_id": "v2-lr-0f5a34da63593e47cd74",
+      "run_id": "v2-lr-345606eb3acc5b1c8505",
       "stage": "lr_search",
       "config": "A-16",
       "lr": 0.001,
@@ -412,7 +409,7 @@
       "executor": "rtx4070ti"
     },
     {
-      "run_id": "v2-lr-cc5438ec9add06783fff",
+      "run_id": "v2-lr-934afc83c7ef47bf7c8b",
       "stage": "lr_search",
       "config": "A-16",
       "lr": 0.01,
@@ -420,7 +417,7 @@
       "executor": "rtx3090"
     },
     {
-      "run_id": "v2-lr-c2098500d22f370f2c60",
+      "run_id": "v2-lr-a5a194ad8c2d4e3aa3fd",
       "stage": "lr_search",
       "config": "A-16",
       "lr": 0.03,
@@ -428,7 +425,7 @@
       "executor": "rtx3060"
     },
     {
-      "run_id": "v2-lr-405a2e0d44329af59bf1",
+      "run_id": "v2-lr-75741ce7185c62be7ead",
       "stage": "lr_search",
       "config": "B-16",
       "lr": 0.0001,
@@ -436,7 +433,7 @@
       "executor": "rtx3090"
     },
     {
-      "run_id": "v2-lr-cd6ffea0bb4fa484b220",
+      "run_id": "v2-lr-e2f0aac96f5c8c3170ad",
       "stage": "lr_search",
       "config": "B-16",
       "lr": 0.001,
@@ -444,7 +441,7 @@
       "executor": "rtx3060"
     },
     {
-      "run_id": "v2-lr-1d01a9f58d8496e897bb",
+      "run_id": "v2-lr-0acf33d327c13472fa58",
       "stage": "lr_search",
       "config": "B-16",
       "lr": 0.01,
@@ -452,7 +449,7 @@
       "executor": "rtx4070ti"
     },
     {
-      "run_id": "v2-lr-57feb9e7a1bdd55eeaf8",
+      "run_id": "v2-lr-4f0e249072ad67e13db0",
       "stage": "lr_search",
       "config": "B-16",
       "lr": 0.03,
@@ -460,5 +457,5 @@
       "executor": "rtx3090"
     }
   ],
-  "plan_hash": "14e1d948917cc9bb47a422df6e5b67c55fd9f923aed41f52b509b62e37017410"
+  "plan_hash": "9bfefb8d4bf8eb298d43fc3f3c605a87f16006a0846f363b80d5b9341bc861cd"
 }

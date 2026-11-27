@@ -9,7 +9,7 @@ import time
 def main():
     import torch
     from transformers import AutoImageProcessor
-    from configs import MODEL_ID
+    from study_configs import MODEL_ID
     from data import (read_manifest, official_train, ManifestDataset,
                       EpochSampler, collate_fn)
 

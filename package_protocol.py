@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import zipfile
 
-from configs import MODEL_ID
+from study_configs import MODEL_ID
 from data import DATASET_ID, read_manifest
 
 

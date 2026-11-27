@@ -4,18 +4,17 @@ import json
 from pathlib import Path
 import re
 
-from checkpoints import file_hash, write_json
-from data import canonical_hash, TRANSFORM_VERSION, SELECTION_VERSION
-from experiment import EXECUTORS, PROFILE, protocol_info, validate_profile
-from study_configs import (PROTOCOL_VERSION, CONFIGS, EPOCHS, LR_GRID, SEARCH_SEED,
+from file_utils import file_hash, write_json
+from data import canonical_hash, TRANSFORM_VERSION, SELECTION_VERSION, DATASET_ID
+from study_runtime import EXECUTORS, PROFILE, protocol_info, validate_profile
+from study_configs import (PROTOCOL_VERSION, MODEL_ID, CONFIGS, EPOCHS, LR_GRID, SEARCH_SEED,
                            FINAL_SEEDS, ALIASES, SERIES, RECIPE,
                            configuration_specs, statistics_spec)
 
 SOURCE_FILES = (
-    'configs.py', 'data.py', 'train.py', 'checkpoints.py', 'experiment.py', 'run_queue.py',
-    'bootstrap.py', 'check_data.py', 'test_params.py', 'requirements.txt',
-    'study_configs.py', 'study_protocol.py', 'study_results.py', 'study_train.py',
-    'study_queue.py', 'study_check.py')
+    'file_utils.py', 'data.py', 'study_configs.py', 'study_runtime.py',
+    'study_trainer.py', 'study_protocol.py', 'study_results.py', 'study_train.py',
+    'study_queue.py', 'study_check.py', 'bootstrap.py', 'check_data.py', 'requirements.txt')
 
 
 def source_manifest():
@@ -31,8 +30,6 @@ def seal_hash(payload, key):
 
 def common_recipe(pins, profile, source_hash):
     profile = validate_profile(dict(profile))
-    if any(type(profile[k]) is not int for k in ('microbatch', 'accumulation', 'eval_batch', 'workers')):
-        raise ValueError('Runtime batch/worker values must be integers')
     return {
         'protocol_version': PROTOCOL_VERSION, **pins,
         'epochs': EPOCHS, 'train_images': 18180, 'val_images': 2020, 'test_images': 25250,
@@ -149,8 +146,6 @@ def validate_plan(plan):
     if set(files) != set(SOURCE_FILES) or any(not re.fullmatch('[0-9a-f]{64}', v) for v in files.values()):
         raise ValueError('Invalid v2 source manifest')
     pins = {k: common[k] for k in ('model', 'model_revision', 'dataset', 'dataset_revision', 'manifest_hash')}
-    from configs import MODEL_ID
-    from data import DATASET_ID
     if pins['model'] != MODEL_ID or pins['dataset'] != DATASET_ID:
         raise ValueError('Unexpected model/dataset')
     for key, size in (('model_revision', 40), ('dataset_revision', 40), ('manifest_hash', 64)):

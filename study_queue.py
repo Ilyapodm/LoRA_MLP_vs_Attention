@@ -7,22 +7,19 @@ import subprocess
 import sys
 import uuid
 
-from checkpoints import write_json
+from file_utils import write_json
 from data import canonical_hash
-from experiment import EXECUTORS
-from run_queue import environment, queue_lock, validate_admission as validate_gpu_admission
+from study_runtime import (EXECUTORS, GPU_PATTERNS, environment, queue_lock,
+                           validate_environment_receipt)
 from study_configs import PROTOCOL_VERSION
 from study_protocol import (make_lr_plan, make_final_plan, read_plan, write_final_files,
-                            validate_freeze, source_manifest)
+                            validate_freeze)
 from study_results import read_result, collect_search_results, collect_final_results
-
-GPU_PATTERNS = {'rtx4070ti': r'RTX\s*4070\s*TI(?!\s*SUPER)',
-                'rtx3090': r'RTX\s*3090(?!\s*TI)', 'rtx3060': r'RTX\s*3060(?!\s*TI)'}
 
 
 def validate_admission(path, plan, executor, current=None):
     lr_plan = plan if plan['stage'] == 'lr_search' else plan['lr_plan']
-    receipt = validate_gpu_admission(path, lr_plan, executor, current)
+    receipt = validate_environment_receipt(path, lr_plan, executor, current)
     if (receipt.get('schema_version') != 2 or receipt.get('protocol_version') != PROTOCOL_VERSION or
             receipt.get('source_hash') != plan['common']['source_hash'] or
             receipt.get('profile_hash') != canonical_hash(plan['common']['profile'])):

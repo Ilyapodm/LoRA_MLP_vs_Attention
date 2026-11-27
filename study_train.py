@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import time
 
-from checkpoints import write_json
+from file_utils import write_json, export_best
 from study_protocol import (config_record, read_plan, validate_plan, validate_freeze,
                             steps_per_epoch)
 from study_results import seal_result
@@ -63,8 +63,8 @@ def execute_training(model, train_dataset, val_dataset, settings, output, plan, 
                      env, collator=None, processor=None, setup_seconds=0):
     """Injectable models/data support CPU tests; CLI always loads the real frozen recipe."""
     import torch
-    from train import (ImageTrainer, UpdateAudit, NumericalInvalid, classification_metrics,
-                       argmax_logits, export_best)
+    from study_trainer import (ImageTrainer, UpdateAudit, NumericalInvalid,
+                               classification_metrics, argmax_logits)
     validate_plan(plan)
     identity = config_record(plan, run)
     common, stage = plan['common'], plan['stage']
