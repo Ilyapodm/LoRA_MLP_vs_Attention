@@ -1,0 +1,464 @@
+{
+  "schema_version": 2,
+  "stage": "lr_search",
+  "source_files": {
+    "configs.py": "c08825b3fbae8fe6e45f033f20aa28028348c4a341cde1cf7da7e5df00f091e7",
+    "data.py": "082f56bce5ede0f62ec53091de1c996a38e89cc48a98b2218e58ba5ecbeca0af",
+    "train.py": "4c0d0c192169ee395dc4a7ffd541f940b90412a06bfc290fe895f7a1cebdb10d",
+    "checkpoints.py": "c9219cd6a545fad04afafc160d8679ee4390a01e6e8a80714e4fb3b78cfebbd8",
+    "experiment.py": "7a3c5e71eda130d5d460e2168d46b6b41833b250da513bc40b40df35059d66a8",
+    "run_queue.py": "2931f8acdeb275eccf64fae94de919dabc58d3268c7723f4bdb6582cfeb539a3",
+    "bootstrap.py": "9816925d13445c12f7e9c8885ede1d4625c4c9e693234e73fcf1d5a51f527dff",
+    "check_data.py": "87be6a8f823716a9a760fd8e31847ed2a72659b38221c7fcc1958ba4f6fae9a5",
+    "test_params.py": "3cd99c2c6bb48aefb888f5f197742cd464b683bf60d78a110edeeda74a6ed86e",
+    "requirements.txt": "c591be6d1a9c767c9a9dbf3cfebc8a8f178ca91311af5da73deb4f7313d7f275",
+    "study_configs.py": "28e2a3e80cc2b270983bd8ad16c211cf812d87cb1aeb8e89c4affc9c807920bf",
+    "study_protocol.py": "222f421605fc786f90334834bbec5607952834181539246d88df9823bad09d01",
+    "study_results.py": "71faf2ab6238cc251d869c1136ddcea48ce75ade89afd8a1a4e435cbd14195aa",
+    "study_train.py": "8a75ea638ee46ee8f820e616759fdc001198c24fa272367f4f2aca8c4514d396",
+    "study_queue.py": "d495223b2c8b04d18bfff7208432d17cf0daa780488a7f7bf3f3ccd4f5e29014",
+    "study_check.py": "42b0ee97ee35129419e0e5ad0810be622338a6c818e720e0f83b0aec45cfc013"
+  },
+  "common": {
+    "protocol_version": "food101-local-v2",
+    "model": "google/vit-base-patch16-224-in21k",
+    "model_revision": "b4569560a39a0f1af58e3ddaf17facf20ab919b0",
+    "dataset": "ethz/food101",
+    "dataset_revision": "83488de741c1bd1ce27aa6a2b33e19c7bdf92ca9",
+    "manifest_hash": "8337fa066463bd272d5609998187f1f8cc730f3fa23c0eabdb7c555449e9c0cf",
+    "epochs": 10,
+    "train_images": 18180,
+    "val_images": 2020,
+    "test_images": 25250,
+    "python": "3.12",
+    "search_seed": 142,
+    "final_seeds": [
+      42,
+      43,
+      44
+    ],
+    "lr_grid": [
+      0.0001,
+      0.001,
+      0.01,
+      0.03
+    ],
+    "configurations": {
+      "LP": {
+        "r_attn": 0,
+        "r_mlp": 0,
+        "lora_parameters": 0,
+        "trainable_parameters": 77669,
+        "adapter_count": 0
+      },
+      "A-iso": {
+        "r_attn": 20,
+        "r_mlp": 0,
+        "lora_parameters": 1474560,
+        "trainable_parameters": 1552229,
+        "adapter_count": 48
+      },
+      "M-iso": {
+        "r_attn": 0,
+        "r_mlp": 16,
+        "lora_parameters": 1474560,
+        "trainable_parameters": 1552229,
+        "adapter_count": 24
+      },
+      "B-iso": {
+        "r_attn": 10,
+        "r_mlp": 8,
+        "lora_parameters": 1474560,
+        "trainable_parameters": 1552229,
+        "adapter_count": 72
+      },
+      "A-16": {
+        "r_attn": 16,
+        "r_mlp": 0,
+        "lora_parameters": 1179648,
+        "trainable_parameters": 1257317,
+        "adapter_count": 48
+      },
+      "B-16": {
+        "r_attn": 16,
+        "r_mlp": 16,
+        "lora_parameters": 2654208,
+        "trainable_parameters": 2731877,
+        "adapter_count": 72
+      }
+    },
+    "aliases": {
+      "M-16": "M-iso"
+    },
+    "series": {
+      "iso": [
+        "A-iso",
+        "M-iso",
+        "B-iso"
+      ],
+      "rank16": [
+        "A-16",
+        "M-iso",
+        "B-16"
+      ]
+    },
+    "recipe": {
+      "optimizer": "adamw_torch",
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "epsilon": 1e-08,
+      "weight_decay": 0.0,
+      "scheduler": "linear",
+      "warmup_steps": 0,
+      "max_grad_norm": 1.0,
+      "label_smoothing": 0.0,
+      "lora_dropout": 0.1,
+      "lora_bias": "none",
+      "lora_scaling": "alpha=r",
+      "lora_initialization": "peft-default-B-zero",
+      "head_lr": "same-as-adapters",
+      "head_initialization": "trunc-normal-0-std-config-bounds-minus2-plus2-bias-zero",
+      "best_metric": "correct_count",
+      "epoch_tie_break": "earlier",
+      "lr_tie_break": "lower",
+      "early_stopping": false,
+      "evaluation_every_epochs": 1
+    },
+    "statistics": {
+      "primary": "test-top1-mean-and-sample-std-ddof1-across-seeds",
+      "mcnemar": "two-sided-exact",
+      "multiplicity": "Holm-over-all-18-tests",
+      "hypotheses": [
+        {
+          "series": "iso",
+          "left": "A-iso",
+          "right": "M-iso",
+          "seed": 42
+        },
+        {
+          "series": "iso",
+          "left": "A-iso",
+          "right": "M-iso",
+          "seed": 43
+        },
+        {
+          "series": "iso",
+          "left": "A-iso",
+          "right": "M-iso",
+          "seed": 44
+        },
+        {
+          "series": "iso",
+          "left": "A-iso",
+          "right": "B-iso",
+          "seed": 42
+        },
+        {
+          "series": "iso",
+          "left": "A-iso",
+          "right": "B-iso",
+          "seed": 43
+        },
+        {
+          "series": "iso",
+          "left": "A-iso",
+          "right": "B-iso",
+          "seed": 44
+        },
+        {
+          "series": "iso",
+          "left": "M-iso",
+          "right": "B-iso",
+          "seed": 42
+        },
+        {
+          "series": "iso",
+          "left": "M-iso",
+          "right": "B-iso",
+          "seed": 43
+        },
+        {
+          "series": "iso",
+          "left": "M-iso",
+          "right": "B-iso",
+          "seed": 44
+        },
+        {
+          "series": "rank16",
+          "left": "A-16",
+          "right": "M-iso",
+          "seed": 42
+        },
+        {
+          "series": "rank16",
+          "left": "A-16",
+          "right": "M-iso",
+          "seed": 43
+        },
+        {
+          "series": "rank16",
+          "left": "A-16",
+          "right": "M-iso",
+          "seed": 44
+        },
+        {
+          "series": "rank16",
+          "left": "A-16",
+          "right": "B-16",
+          "seed": 42
+        },
+        {
+          "series": "rank16",
+          "left": "A-16",
+          "right": "B-16",
+          "seed": 43
+        },
+        {
+          "series": "rank16",
+          "left": "A-16",
+          "right": "B-16",
+          "seed": 44
+        },
+        {
+          "series": "rank16",
+          "left": "M-iso",
+          "right": "B-16",
+          "seed": 42
+        },
+        {
+          "series": "rank16",
+          "left": "M-iso",
+          "right": "B-16",
+          "seed": 43
+        },
+        {
+          "series": "rank16",
+          "left": "M-iso",
+          "right": "B-16",
+          "seed": 44
+        }
+      ],
+      "lp_comparisons": "descriptive-baseline-no-additional-p-values",
+      "bootstrap": {
+        "replicates": 5000,
+        "seed": 2026,
+        "stratified_by": "class",
+        "unit": "image",
+        "paired_indices": true,
+        "average_difference_over_seeds_before_resampling": true,
+        "interval": "percentile-95-descriptive-no-simultaneous-coverage",
+        "interpretation": "conditional-on-the-three-trained-seeds"
+      }
+    },
+    "transform_version": "rgb-bilinear-crop224-v1",
+    "selection_version": "pcg64-class-permutation-v1",
+    "profile": {
+      "microbatch": 16,
+      "accumulation": 32,
+      "eval_batch": 32,
+      "gradient_checkpointing": false,
+      "precision": "fp32-amp-fp16",
+      "attention": "sdpa",
+      "tf32": false,
+      "workers": 0
+    },
+    "source_hash": "70359e92d4eeb40fecec668dfb4574cd11aefc4103ff026b1782b1a8fa9993d2"
+  },
+  "runs": [
+    {
+      "run_id": "v2-lr-a84eb3067e6cab83d838",
+      "stage": "lr_search",
+      "config": "LP",
+      "lr": 0.0001,
+      "seed": 142,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-lr-6c883735f26a446d7375",
+      "stage": "lr_search",
+      "config": "LP",
+      "lr": 0.001,
+      "seed": 142,
+      "executor": "rtx3090"
+    },
+    {
+      "run_id": "v2-lr-60aba9326312d534e06b",
+      "stage": "lr_search",
+      "config": "LP",
+      "lr": 0.01,
+      "seed": 142,
+      "executor": "rtx3060"
+    },
+    {
+      "run_id": "v2-lr-21c98176d4e9e7d932b6",
+      "stage": "lr_search",
+      "config": "LP",
+      "lr": 0.03,
+      "seed": 142,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-lr-e9c4676b2e6dac45a525",
+      "stage": "lr_search",
+      "config": "A-iso",
+      "lr": 0.0001,
+      "seed": 142,
+      "executor": "rtx3060"
+    },
+    {
+      "run_id": "v2-lr-e60b8dca8cde539aa52d",
+      "stage": "lr_search",
+      "config": "A-iso",
+      "lr": 0.001,
+      "seed": 142,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-lr-ccaa9bc9b879691719d8",
+      "stage": "lr_search",
+      "config": "A-iso",
+      "lr": 0.01,
+      "seed": 142,
+      "executor": "rtx3090"
+    },
+    {
+      "run_id": "v2-lr-b9721bed1a840f7648b3",
+      "stage": "lr_search",
+      "config": "A-iso",
+      "lr": 0.03,
+      "seed": 142,
+      "executor": "rtx3060"
+    },
+    {
+      "run_id": "v2-lr-a0a1ab5088d6d400c9db",
+      "stage": "lr_search",
+      "config": "M-iso",
+      "lr": 0.0001,
+      "seed": 142,
+      "executor": "rtx3090"
+    },
+    {
+      "run_id": "v2-lr-b0a66863fc13515c99ff",
+      "stage": "lr_search",
+      "config": "M-iso",
+      "lr": 0.001,
+      "seed": 142,
+      "executor": "rtx3060"
+    },
+    {
+      "run_id": "v2-lr-3f0ca12eb5121069df4f",
+      "stage": "lr_search",
+      "config": "M-iso",
+      "lr": 0.01,
+      "seed": 142,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-lr-b6ee960996cbddef0faf",
+      "stage": "lr_search",
+      "config": "M-iso",
+      "lr": 0.03,
+      "seed": 142,
+      "executor": "rtx3090"
+    },
+    {
+      "run_id": "v2-lr-fd4c339cd9ea52543436",
+      "stage": "lr_search",
+      "config": "B-iso",
+      "lr": 0.0001,
+      "seed": 142,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-lr-7f6847b43ca7e5588431",
+      "stage": "lr_search",
+      "config": "B-iso",
+      "lr": 0.001,
+      "seed": 142,
+      "executor": "rtx3090"
+    },
+    {
+      "run_id": "v2-lr-77116462cf02d80f8ee4",
+      "stage": "lr_search",
+      "config": "B-iso",
+      "lr": 0.01,
+      "seed": 142,
+      "executor": "rtx3060"
+    },
+    {
+      "run_id": "v2-lr-fdc7e6e1f0d6b6a049c5",
+      "stage": "lr_search",
+      "config": "B-iso",
+      "lr": 0.03,
+      "seed": 142,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-lr-4b8c871da95914bbf7c1",
+      "stage": "lr_search",
+      "config": "A-16",
+      "lr": 0.0001,
+      "seed": 142,
+      "executor": "rtx3060"
+    },
+    {
+      "run_id": "v2-lr-0f5a34da63593e47cd74",
+      "stage": "lr_search",
+      "config": "A-16",
+      "lr": 0.001,
+      "seed": 142,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-lr-cc5438ec9add06783fff",
+      "stage": "lr_search",
+      "config": "A-16",
+      "lr": 0.01,
+      "seed": 142,
+      "executor": "rtx3090"
+    },
+    {
+      "run_id": "v2-lr-c2098500d22f370f2c60",
+      "stage": "lr_search",
+      "config": "A-16",
+      "lr": 0.03,
+      "seed": 142,
+      "executor": "rtx3060"
+    },
+    {
+      "run_id": "v2-lr-405a2e0d44329af59bf1",
+      "stage": "lr_search",
+      "config": "B-16",
+      "lr": 0.0001,
+      "seed": 142,
+      "executor": "rtx3090"
+    },
+    {
+      "run_id": "v2-lr-cd6ffea0bb4fa484b220",
+      "stage": "lr_search",
+      "config": "B-16",
+      "lr": 0.001,
+      "seed": 142,
+      "executor": "rtx3060"
+    },
+    {
+      "run_id": "v2-lr-1d01a9f58d8496e897bb",
+      "stage": "lr_search",
+      "config": "B-16",
+      "lr": 0.01,
+      "seed": 142,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-lr-57feb9e7a1bdd55eeaf8",
+      "stage": "lr_search",
+      "config": "B-16",
+      "lr": 0.03,
+      "seed": 142,
+      "executor": "rtx3090"
+    }
+  ],
+  "plan_hash": "14e1d948917cc9bb47a422df6e5b67c55fd9f923aed41f52b509b62e37017410"
+}

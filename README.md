@@ -1,125 +1,100 @@
-# LoRA: Attention vs MLP vs Both
+# LoRA в Attention, MLP и Both: активный протокол v2
 
-Основной сценарий — три постоянных ПК: RTX 4070 Ti, RTX 3090, RTX 3060.
-Один run целиком на одном ПК, checkpoints на локальном диске. После технического
-сбоя повторяем тот же run с начала в новой attempt-папке. Готовые результаты
-передаём координатору после завершения. Colab и перенос незавершённого обучения
-не являются условиями запуска основной серии.
+Сравниваем адаптацию google/vit-base-patch16-224-in21k к Food-101 в двух сериях:
+равное число trainable parameters и фиксированный ранг r16. Данные прежние:
+18 180 train / 2 020 val, официальный validation25250 служит закрытым test.
 
-Научный протокол: google/vit-base-patch16-224-in21k, Food-101, все 101 класс,
-18 180 train / 2 020 val (180/20 каждого класса), пять эпох. LP, A-iso r20,
-M-iso r16, B-iso r10/r8; штатный PEFT, LoRA-методы по 1 552 229 trainable params,
-LP — 77 669. Поиск: каждый метод × LR {1e-4,1e-3,1e-2}, seed142, 12 runs.
-Затем планируются 12 final (seeds42/43/44) и официальный test25250.
+**V2: 10 эпох, шесть уникальных конфигураций, LR {1e-4,1e-3,1e-2,3e-2}.**
+24 LR-пробы seed142 + 18 final (seeds42/43/44) = **42 новых обучения**.
+M-16 идентичен M-iso и используется в обеих сериях без дублирования.
 
-Реализованы `technical`, **`lr_search`** и **final-обучение**, локальные очереди,
-preflight, сбор LR и фиксация final-плана/freeze. **Evaluate, проверка допуска
-test loader и итоговая статистика ещё не реализованы.** Final заканчивается
-подтверждённым TRAINED без test-метрик.
+| Метод | r Attention / MLP | Trainable с head | Серия |
+| --- | --- | ---: | --- |
+| LP | 0 / 0 | 77 669 | общий baseline |
+| A-iso | 20 / 0 | 1 552 229 | равные параметры |
+| M-iso = M-16 | 0 / 16 | 1 552 229 | обе серии |
+| B-iso | 10 / 8 | 1 552 229 | равные параметры |
+| A-16 | 16 / 0 | 1 257 317 | равный ранг |
+| B-16 | 16 / 16 | 2 731 877 | равный ранг |
 
-Полная инструкция и таблица распределения: [07-local-runs.md](lora_docs_updated/07-local-runs.md).
-После всех 12 LR-проб: [08-final-runs.md](lora_docs_updated/08-final-runs.md).
+Источники истины: [протокол](lora_docs_updated/02-protocol.md),
+[основания дизайна](lora_docs_updated/10-v2-design.md),
+[пошаговый запуск v2](lora_docs_updated/09-v2-runs.md),
+[план анализа](lora_docs_updated/05-analysis.md).
 
 ## Быстрый порядок
 
-Python **3.12**, отдельный venv на каждом ПК, один видимый GPU. Сначала установить
-CUDA PyTorch из cu126 индекса, затем requirements. Общий data-protocol.zip
-распаковать в artifacts/protocol. Изображения скачиваются в локальный HF cache.
+Python3.12, requirements.txt с прежним CUDA PyTorch2.8/cu126, одна видимая GPU.
+Новых ML-зависимостей нет. Прежний data protocol в artifacts/protocol и тот же
+HF cache. На каждом ПК использовать одну согласованную source release и общий
+runs-v2.json. Рабочий каталог команд — корень проекта.
+
+Если runs-v2.json не предоставлен, координатор создаёт его **один раз**:
 
 ```bash
-python -m pip install torch==2.8.0+cu126 torchvision==0.23.0+cu126 --index-url https://download.pytorch.org/whl/cu126
-python -m pip install -r requirements.txt
+python study_queue.py --make-lr-plan --plan runs-v2.json --protocol artifacts/protocol
 ```
 
-Preflight и очередь должны использовать один HF cache. Для новой установки
-можно выбрать `cache/huggingface` внутри проекта; настройка HF_HOME для
-bash/CMD/PowerShell дана в [инструкции](lora_docs_updated/07-local-runs.md#1-одинаковое-окружение-и-данные).
-Если preflight уже скачал данные в стандартный cache без HF_HOME, продолжайте
-с теми же настройками. Смена пути приводит к повторному скачиванию. Переменные
-cache нужно восстанавливать в каждом новом терминале перед запуском.
-
-Готовый общий runs.json включён в репозиторий. Посмотреть свои задания:
+План не перезаписывается. Все исполнители получают один и тот же файл.
+На каждом ПК подставить свой executor (rtx4070ti / rtx3090 / rtx3060):
 
 ```bash
-python run_queue.py --dry-run --plan runs.json --protocol artifacts/protocol --executor rtx4070ti
+python study_queue.py --dry-run --plan runs-v2.json --executor rtx3060
+python study_queue.py --preflight --plan runs-v2.json --executor rtx3060
+python study_queue.py --run --plan runs-v2.json --executor rtx3060 --admission ПУТЬ_ИЗ_V2_PREFLIGHT/admission.json
 ```
 
-После обновления вычислительного кода до первого научного запуска план нужно
-пересоздать. Все ПК получают **одни и те же исходники и runs.json**; во время
-серии использовать зафиксированный checkout/архив, не обновлять код в рабочем
-каталоге исполнителя. На каждом ПК заменить executor своим именем:
+План содержит по восемь LR-задач на GPU. Новый preflight проверяет все шесть
+моделей и pretrained B-16 с реальным профилем. Старый v1 admission не допускается.
+Результаты по умолчанию в results/v2/lr/<executor>. Полные команды сбора 24
+проб, final-плана/freeze и очередей 18 final — в [инструкции](lora_docs_updated/09-v2-runs.md).
 
-```bash
-python run_queue.py --preflight --plan runs.json --protocol artifacts/protocol --executor rtx4070ti --output results
-python run_queue.py --run --plan runs.json --protocol artifacts/protocol --executor rtx4070ti --output results --admission ПУТЬ_ИЗ_PREFLIGHT/admission.json
-```
+Один run целиком на одной карте, отдельный процесс. После технического сбоя
+повтор с начала того же задания в новой attempt с --retry-failed. LR numerical_invalid
+расходует кандидата и позволяет продолжить поиск; final numerical_invalid блокирует
+серию без подмены LR/seed. Готовые результаты проверяются и пропускаются.
 
-Каждый ПК начинает очередь после своего успешного preflight; проверки остальных
-могут идти параллельно. Каждая очередь последовательно выполняет
-четыре LR-задачи, каждый run в отдельном процессе. Готовые COMPLETE проверяются и
-пропускаются. Численно невалидный LR сохраняется, очередь продолжается;
-техническая ошибка останавливает её. После диагностики `--retry-failed` начинает
-новую попытку с теми же настройками. Логи/история старых попыток остаются.
+## Реализовано
 
-```bash
-python run_queue.py --collect --plan runs.json --protocol artifacts/protocol --results results/rtx4070ti results/rtx3090 results/rtx3060 --output selected_lrs.json
-```
+- study_configs.py — шесть моделей, две серии, alias M-16, рецепт и 18 гипотез.
+- study_protocol.py — release/data/profile hashes, 24 LR / 18 final, selection/freeze.
+- study_train.py — full-data LR/final, 10 val-эпох, 360 updates, best и диагностика.
+- study_results.py — строгая приёмка и сбор; LR COMPLETE / final TRAINED.
+- study_queue.py — coordinator CLI, preflight, очереди и retries.
+- study_check.py — параметры/gradients/freeze всех шести, реальный B-16 preflight.
+- package_study.py — согласованный source-only архив с планом и hashes.
 
-Сбор требует все 12 исходов, проверяет hashes и выбирает LR по val correct_count,
-при равенстве меньший LR. Все три numerical_invalid одного метода блокируют выбор.
-LR search не создаёт test loader, test-поля null. Старт final — отдельный следующий этап.
+Общий профиль: 16/32/eval32, effective512, FP32+AMP FP16, SDPA, TF32 off,
+workers0. Best — максимум целого val correct_count, ties ранняя эпоха; LR ties
+меньшее значение. Все final начинаются с pretrained; LP/LR weights не переносятся.
 
-## Код
+**Test evaluation, predictions, norms, численный статистический анализ и final
+COMPLETE ещё не реализованы.** На этом этапе final заканчивается TRAINED с
+нулевым доступом к test loader и test-полями null. Дизайн анализа зафиксирован
+в плане; замена статистической семьи не означает, что p-values уже вычислены.
 
-- configs.py — модель, ranks/alpha, trainable whitelist, head init, PEFT.
-- data.py / check_data.py — manifest, image hashes, transforms/RNG/sampler, приёмка данных.
-- train.py — Trainer, sample-weighted loss, technical и full-data lr_search, local best export.
-- experiment.py — неизменяемый план, проверка результатов и выбор LR.
-- run_queue.py — очереди ПК, допуск окружения/GPU, остановка/повтор и сбор результатов.
-- final_protocol.py / final_queue.py — проверка всех LR-проб, freeze, план 12 final и очереди seed-блоков.
-- final_train.py / final_results.py — final с исходных весов, best export, TRAINED/hashes и сбор обучений.
-- checkpoints.py / check_resume.py / check_storage.py — дополнительные bundle/resume/sync проверки;
-  обязательная переносимость продолжения не используется в локальной научной серии.
-- package_protocol.py / package_bootstrap.py — общий protocol archive и source bundle.
-- colab.ipynb — вспомогательные технические проверки, не основной запуск LR.
-
-Научный lr_search не принимает probe/stop/dummy/resume/произвольные LR или seed:
-задание берётся из проверенного плана, обучается полный manifest пять эпох.
-Сохраняются config/environment/status/history/updates/metrics, best export,
-checksums и COMPLETE последним. LP export — head, PEFT export — LoRA+classifier;
-Trainer checkpoints для LP содержат полный ViT.
-
-## Проверки и ограничения
+## Проверки
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-Без ML-зависимостей доступны stdlib-тесты плана, данных и файловой целостности;
-ML/CUDA проверки пропускаются с явным сообщением. CPU integration test проходит
-полный путь LR на маленькой модели с 18 180 train / 2 020 val × 5: 180 updates,
-пять val-оценок, ранний best при равенстве, export/COMPLETE и numerical_invalid.
-Это проверка логики, не измерение GPU и не научная accuracy.
+CPU integration использует маленькие модели при полных counts18180/2020 и десяти
+эпохах: 360 updates, ранний best, LP/PEFT export, numerical_invalid/interruption.
+Реальные ViT A-16/B-16 также проверяются на CPU: shapes/ranks/alpha/gradients/freeze.
+Это не научная accuracy и не подтверждение памяти/скорости новой GPU-конфигурации;
+на каждой карте перед v2 нужен реальный preflight.
 
-Ранее в Colab T4 подтверждены LP/A/M/B gradients/freeze/params, pretrained Both,
-реальные данные и короткий Trainer 772/32 × 2: 31,34 с, allocated/reserved
-2,312/2,496 GiB. Эти числа не являются benchmark трёх ПК или полным бюджетом.
-Восстановление LP после переноса совпало точно. У Both продолжение AMP отличалось
-до 1,3e-5; переносимый resume не принят. Это не основание объявлять ошибочным
-обычный полный run; локальная очередь начинает повтор с исходных весов.
-26.11.2026 полный локальный preflight на RTX 3060 12GB прошёл: проверены все
-20 200 изображений, параметры/градиенты LP/A/M/B и pretrained Both через Trainer
-772/32 × 2 с общим профилем 16/32/eval32. Job — 20,43 с, allocated/reserved —
-2,312/2,496 GiB, четыре applied updates без skips. Это технический замер,
-не научное обучение и не benchmark полной очереди. Preflight 4070 Ti/3090
-ещё ожидается; каждый ПК может начать LR search после своего успешного допуска.
+## Пилот v1 сохранён
 
-Dataset SHA: 83488de741c1bd1ce27aa6a2b33e19c7bdf92ca9.
-Model SHA: b4569560a39a0f1af58e3ddaf17facf20ab919b0.
-Manifest hash: 8337fa066463bd272d5609998187f1f8cc730f3fa23c0eabdb7c555449e9c0cf.
-Независимая CPU/Colab подготовка дала один hash; все выбранные изображения проверены.
-Артефакты в artifacts/ и cache/ игнорируются Git; data-protocol.zip содержит
-только manifest/revisions/checksums, не изображения. Локальная LR-очередь RTX 3060
-завершена: четыре valid результата; общий выбор LR ждёт остальные восемь проб.
+Исходные configs.py/data.py/train.py/experiment.py/run_queue.py и старые final_*.py
+оставлены без изменений. runs.json и results/rtx* — пятиэпоховый пилот с четырьмя
+методами и тремя LR. Не смешивать с v2 и не пересоздавать checksums под изменённые
+файлы. Неурегулированное расхождение environment.json RTX3090 остаётся вопросом
+приёмки пилота; v2 выполняется с начала и требует собственные неизменяемые отчёты.
 
-Новый план до начала серии создаётся в новом файле: `python run_queue.py --make-plan --protocol artifacts/protocol --plan runs-new.json`; затем этот путь указывается во всех командах. Существующий план не перезаписывается.
+Исторические инструкции: [07](lora_docs_updated/07-local-runs.md),
+[08](lora_docs_updated/08-final-runs.md),
+[архив протокола](lora_docs_updated/archive/v1-02-protocol.md).
+colab.ipynb/package_bootstrap.py относятся к старому bootstrap, не запускают v2.
+Необязательные переносимые resume/Drive-sync не входят в основной локальный сценарий.
