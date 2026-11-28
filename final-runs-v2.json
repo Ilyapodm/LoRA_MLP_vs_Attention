@@ -1,0 +1,1886 @@
+{
+  "schema_version": 2,
+  "stage": "final",
+  "source_files": {
+    "file_utils.py": "2b5d9d067539f0d4e3ab11da55c88e75cc557fafe387ed9bd759827bac5339fd",
+    "data.py": "082f56bce5ede0f62ec53091de1c996a38e89cc48a98b2218e58ba5ecbeca0af",
+    "study_configs.py": "b643458789f307b88972557d6a4f117fe13257456c3c988e6dd34a694cc67c1e",
+    "study_runtime.py": "869479c3f5bdc5d0780dead0493f2c3f85b22674206888956c02d1ba30de2df7",
+    "study_trainer.py": "a869b12c7bf708e73d3ec1842416d2ad9a1c93c1374c0bd23c11ff95e6f3e36d",
+    "study_protocol.py": "9e9bc73281fd36012043d18681f1cbd1a3b5a1eaa987a76c60e241f7c1b0c656",
+    "study_results.py": "52a75cfd1537ca303051d7fc29d438c2c6974e08f6415d559e60bab775168500",
+    "study_train.py": "0a6638c399e79e269dd937edf094775b73e4d046268c25cbfde1e9bdfedd17d9",
+    "study_queue.py": "bdd2cb841f6adf28acb968fc09e3b6c008580a49a62aa630128ce67b5af8817f",
+    "study_check.py": "e45ecf907ac1f3e97e3815126cb8480fd3dc20695fc3311a46be38efa3098b1d",
+    "bootstrap.py": "5e5b4419a2279af6667f1951e8af537b8b3a011571c0eef7d46fc0fe028b6d6b",
+    "check_data.py": "f0e580448dc060402455ca25e11d2e22d61c77af5793f4158c91ec912c309063",
+    "requirements.txt": "c591be6d1a9c767c9a9dbf3cfebc8a8f178ca91311af5da73deb4f7313d7f275"
+  },
+  "common": {
+    "protocol_version": "food101-local-v2",
+    "model": "google/vit-base-patch16-224-in21k",
+    "model_revision": "b4569560a39a0f1af58e3ddaf17facf20ab919b0",
+    "dataset": "ethz/food101",
+    "dataset_revision": "83488de741c1bd1ce27aa6a2b33e19c7bdf92ca9",
+    "manifest_hash": "8337fa066463bd272d5609998187f1f8cc730f3fa23c0eabdb7c555449e9c0cf",
+    "epochs": 10,
+    "train_images": 18180,
+    "val_images": 2020,
+    "test_images": 25250,
+    "python": "3.12",
+    "search_seed": 142,
+    "final_seeds": [
+      42,
+      43,
+      44
+    ],
+    "lr_grid": [
+      0.0001,
+      0.001,
+      0.01,
+      0.03
+    ],
+    "configurations": {
+      "LP": {
+        "r_attn": 0,
+        "r_mlp": 0,
+        "lora_parameters": 0,
+        "trainable_parameters": 77669,
+        "adapter_count": 0
+      },
+      "A-iso": {
+        "r_attn": 20,
+        "r_mlp": 0,
+        "lora_parameters": 1474560,
+        "trainable_parameters": 1552229,
+        "adapter_count": 48
+      },
+      "M-iso": {
+        "r_attn": 0,
+        "r_mlp": 16,
+        "lora_parameters": 1474560,
+        "trainable_parameters": 1552229,
+        "adapter_count": 24
+      },
+      "B-iso": {
+        "r_attn": 10,
+        "r_mlp": 8,
+        "lora_parameters": 1474560,
+        "trainable_parameters": 1552229,
+        "adapter_count": 72
+      },
+      "A-16": {
+        "r_attn": 16,
+        "r_mlp": 0,
+        "lora_parameters": 1179648,
+        "trainable_parameters": 1257317,
+        "adapter_count": 48
+      },
+      "B-16": {
+        "r_attn": 16,
+        "r_mlp": 16,
+        "lora_parameters": 2654208,
+        "trainable_parameters": 2731877,
+        "adapter_count": 72
+      }
+    },
+    "aliases": {
+      "M-16": "M-iso"
+    },
+    "series": {
+      "iso": [
+        "A-iso",
+        "M-iso",
+        "B-iso"
+      ],
+      "rank16": [
+        "A-16",
+        "M-iso",
+        "B-16"
+      ]
+    },
+    "recipe": {
+      "optimizer": "adamw_torch",
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "epsilon": 1e-08,
+      "weight_decay": 0.0,
+      "scheduler": "linear",
+      "warmup_steps": 0,
+      "max_grad_norm": 1.0,
+      "label_smoothing": 0.0,
+      "lora_dropout": 0.1,
+      "lora_bias": "none",
+      "lora_scaling": "alpha=r",
+      "lora_initialization": "peft-default-B-zero",
+      "head_lr": "same-as-adapters",
+      "head_initialization": "trunc-normal-0-std-config-bounds-minus2-plus2-bias-zero",
+      "best_metric": "correct_count",
+      "epoch_tie_break": "earlier",
+      "lr_tie_break": "lower",
+      "early_stopping": false,
+      "evaluation_every_epochs": 1
+    },
+    "statistics": {
+      "primary": "test-top1-mean-and-sample-std-ddof1-across-seeds",
+      "mcnemar": "two-sided-exact",
+      "multiplicity": "Holm-over-all-18-tests",
+      "hypotheses": [
+        {
+          "series": "iso",
+          "left": "A-iso",
+          "right": "M-iso",
+          "seed": 42
+        },
+        {
+          "series": "iso",
+          "left": "A-iso",
+          "right": "M-iso",
+          "seed": 43
+        },
+        {
+          "series": "iso",
+          "left": "A-iso",
+          "right": "M-iso",
+          "seed": 44
+        },
+        {
+          "series": "iso",
+          "left": "A-iso",
+          "right": "B-iso",
+          "seed": 42
+        },
+        {
+          "series": "iso",
+          "left": "A-iso",
+          "right": "B-iso",
+          "seed": 43
+        },
+        {
+          "series": "iso",
+          "left": "A-iso",
+          "right": "B-iso",
+          "seed": 44
+        },
+        {
+          "series": "iso",
+          "left": "M-iso",
+          "right": "B-iso",
+          "seed": 42
+        },
+        {
+          "series": "iso",
+          "left": "M-iso",
+          "right": "B-iso",
+          "seed": 43
+        },
+        {
+          "series": "iso",
+          "left": "M-iso",
+          "right": "B-iso",
+          "seed": 44
+        },
+        {
+          "series": "rank16",
+          "left": "A-16",
+          "right": "M-iso",
+          "seed": 42
+        },
+        {
+          "series": "rank16",
+          "left": "A-16",
+          "right": "M-iso",
+          "seed": 43
+        },
+        {
+          "series": "rank16",
+          "left": "A-16",
+          "right": "M-iso",
+          "seed": 44
+        },
+        {
+          "series": "rank16",
+          "left": "A-16",
+          "right": "B-16",
+          "seed": 42
+        },
+        {
+          "series": "rank16",
+          "left": "A-16",
+          "right": "B-16",
+          "seed": 43
+        },
+        {
+          "series": "rank16",
+          "left": "A-16",
+          "right": "B-16",
+          "seed": 44
+        },
+        {
+          "series": "rank16",
+          "left": "M-iso",
+          "right": "B-16",
+          "seed": 42
+        },
+        {
+          "series": "rank16",
+          "left": "M-iso",
+          "right": "B-16",
+          "seed": 43
+        },
+        {
+          "series": "rank16",
+          "left": "M-iso",
+          "right": "B-16",
+          "seed": 44
+        }
+      ],
+      "lp_comparisons": "descriptive-baseline-no-additional-p-values",
+      "bootstrap": {
+        "replicates": 5000,
+        "seed": 2026,
+        "stratified_by": "class",
+        "unit": "image",
+        "paired_indices": true,
+        "average_difference_over_seeds_before_resampling": true,
+        "interval": "percentile-95-descriptive-no-simultaneous-coverage",
+        "interpretation": "conditional-on-the-three-trained-seeds"
+      }
+    },
+    "transform_version": "rgb-bilinear-crop224-v1",
+    "selection_version": "pcg64-class-permutation-v1",
+    "profile": {
+      "microbatch": 16,
+      "accumulation": 32,
+      "eval_batch": 32,
+      "gradient_checkpointing": false,
+      "precision": "fp32-amp-fp16",
+      "attention": "sdpa",
+      "tf32": false,
+      "workers": 0
+    },
+    "source_hash": "4ca93496c63526e795ffef0f07adae2fde7f44adfb555d86f548eb92fe7a1c58"
+  },
+  "lr_plan": {
+    "schema_version": 2,
+    "stage": "lr_search",
+    "source_files": {
+      "file_utils.py": "2b5d9d067539f0d4e3ab11da55c88e75cc557fafe387ed9bd759827bac5339fd",
+      "data.py": "082f56bce5ede0f62ec53091de1c996a38e89cc48a98b2218e58ba5ecbeca0af",
+      "study_configs.py": "b643458789f307b88972557d6a4f117fe13257456c3c988e6dd34a694cc67c1e",
+      "study_runtime.py": "869479c3f5bdc5d0780dead0493f2c3f85b22674206888956c02d1ba30de2df7",
+      "study_trainer.py": "a869b12c7bf708e73d3ec1842416d2ad9a1c93c1374c0bd23c11ff95e6f3e36d",
+      "study_protocol.py": "9e9bc73281fd36012043d18681f1cbd1a3b5a1eaa987a76c60e241f7c1b0c656",
+      "study_results.py": "52a75cfd1537ca303051d7fc29d438c2c6974e08f6415d559e60bab775168500",
+      "study_train.py": "0a6638c399e79e269dd937edf094775b73e4d046268c25cbfde1e9bdfedd17d9",
+      "study_queue.py": "bdd2cb841f6adf28acb968fc09e3b6c008580a49a62aa630128ce67b5af8817f",
+      "study_check.py": "e45ecf907ac1f3e97e3815126cb8480fd3dc20695fc3311a46be38efa3098b1d",
+      "bootstrap.py": "5e5b4419a2279af6667f1951e8af537b8b3a011571c0eef7d46fc0fe028b6d6b",
+      "check_data.py": "f0e580448dc060402455ca25e11d2e22d61c77af5793f4158c91ec912c309063",
+      "requirements.txt": "c591be6d1a9c767c9a9dbf3cfebc8a8f178ca91311af5da73deb4f7313d7f275"
+    },
+    "common": {
+      "protocol_version": "food101-local-v2",
+      "model": "google/vit-base-patch16-224-in21k",
+      "model_revision": "b4569560a39a0f1af58e3ddaf17facf20ab919b0",
+      "dataset": "ethz/food101",
+      "dataset_revision": "83488de741c1bd1ce27aa6a2b33e19c7bdf92ca9",
+      "manifest_hash": "8337fa066463bd272d5609998187f1f8cc730f3fa23c0eabdb7c555449e9c0cf",
+      "epochs": 10,
+      "train_images": 18180,
+      "val_images": 2020,
+      "test_images": 25250,
+      "python": "3.12",
+      "search_seed": 142,
+      "final_seeds": [
+        42,
+        43,
+        44
+      ],
+      "lr_grid": [
+        0.0001,
+        0.001,
+        0.01,
+        0.03
+      ],
+      "configurations": {
+        "LP": {
+          "r_attn": 0,
+          "r_mlp": 0,
+          "lora_parameters": 0,
+          "trainable_parameters": 77669,
+          "adapter_count": 0
+        },
+        "A-iso": {
+          "r_attn": 20,
+          "r_mlp": 0,
+          "lora_parameters": 1474560,
+          "trainable_parameters": 1552229,
+          "adapter_count": 48
+        },
+        "M-iso": {
+          "r_attn": 0,
+          "r_mlp": 16,
+          "lora_parameters": 1474560,
+          "trainable_parameters": 1552229,
+          "adapter_count": 24
+        },
+        "B-iso": {
+          "r_attn": 10,
+          "r_mlp": 8,
+          "lora_parameters": 1474560,
+          "trainable_parameters": 1552229,
+          "adapter_count": 72
+        },
+        "A-16": {
+          "r_attn": 16,
+          "r_mlp": 0,
+          "lora_parameters": 1179648,
+          "trainable_parameters": 1257317,
+          "adapter_count": 48
+        },
+        "B-16": {
+          "r_attn": 16,
+          "r_mlp": 16,
+          "lora_parameters": 2654208,
+          "trainable_parameters": 2731877,
+          "adapter_count": 72
+        }
+      },
+      "aliases": {
+        "M-16": "M-iso"
+      },
+      "series": {
+        "iso": [
+          "A-iso",
+          "M-iso",
+          "B-iso"
+        ],
+        "rank16": [
+          "A-16",
+          "M-iso",
+          "B-16"
+        ]
+      },
+      "recipe": {
+        "optimizer": "adamw_torch",
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "epsilon": 1e-08,
+        "weight_decay": 0.0,
+        "scheduler": "linear",
+        "warmup_steps": 0,
+        "max_grad_norm": 1.0,
+        "label_smoothing": 0.0,
+        "lora_dropout": 0.1,
+        "lora_bias": "none",
+        "lora_scaling": "alpha=r",
+        "lora_initialization": "peft-default-B-zero",
+        "head_lr": "same-as-adapters",
+        "head_initialization": "trunc-normal-0-std-config-bounds-minus2-plus2-bias-zero",
+        "best_metric": "correct_count",
+        "epoch_tie_break": "earlier",
+        "lr_tie_break": "lower",
+        "early_stopping": false,
+        "evaluation_every_epochs": 1
+      },
+      "statistics": {
+        "primary": "test-top1-mean-and-sample-std-ddof1-across-seeds",
+        "mcnemar": "two-sided-exact",
+        "multiplicity": "Holm-over-all-18-tests",
+        "hypotheses": [
+          {
+            "series": "iso",
+            "left": "A-iso",
+            "right": "M-iso",
+            "seed": 42
+          },
+          {
+            "series": "iso",
+            "left": "A-iso",
+            "right": "M-iso",
+            "seed": 43
+          },
+          {
+            "series": "iso",
+            "left": "A-iso",
+            "right": "M-iso",
+            "seed": 44
+          },
+          {
+            "series": "iso",
+            "left": "A-iso",
+            "right": "B-iso",
+            "seed": 42
+          },
+          {
+            "series": "iso",
+            "left": "A-iso",
+            "right": "B-iso",
+            "seed": 43
+          },
+          {
+            "series": "iso",
+            "left": "A-iso",
+            "right": "B-iso",
+            "seed": 44
+          },
+          {
+            "series": "iso",
+            "left": "M-iso",
+            "right": "B-iso",
+            "seed": 42
+          },
+          {
+            "series": "iso",
+            "left": "M-iso",
+            "right": "B-iso",
+            "seed": 43
+          },
+          {
+            "series": "iso",
+            "left": "M-iso",
+            "right": "B-iso",
+            "seed": 44
+          },
+          {
+            "series": "rank16",
+            "left": "A-16",
+            "right": "M-iso",
+            "seed": 42
+          },
+          {
+            "series": "rank16",
+            "left": "A-16",
+            "right": "M-iso",
+            "seed": 43
+          },
+          {
+            "series": "rank16",
+            "left": "A-16",
+            "right": "M-iso",
+            "seed": 44
+          },
+          {
+            "series": "rank16",
+            "left": "A-16",
+            "right": "B-16",
+            "seed": 42
+          },
+          {
+            "series": "rank16",
+            "left": "A-16",
+            "right": "B-16",
+            "seed": 43
+          },
+          {
+            "series": "rank16",
+            "left": "A-16",
+            "right": "B-16",
+            "seed": 44
+          },
+          {
+            "series": "rank16",
+            "left": "M-iso",
+            "right": "B-16",
+            "seed": 42
+          },
+          {
+            "series": "rank16",
+            "left": "M-iso",
+            "right": "B-16",
+            "seed": 43
+          },
+          {
+            "series": "rank16",
+            "left": "M-iso",
+            "right": "B-16",
+            "seed": 44
+          }
+        ],
+        "lp_comparisons": "descriptive-baseline-no-additional-p-values",
+        "bootstrap": {
+          "replicates": 5000,
+          "seed": 2026,
+          "stratified_by": "class",
+          "unit": "image",
+          "paired_indices": true,
+          "average_difference_over_seeds_before_resampling": true,
+          "interval": "percentile-95-descriptive-no-simultaneous-coverage",
+          "interpretation": "conditional-on-the-three-trained-seeds"
+        }
+      },
+      "transform_version": "rgb-bilinear-crop224-v1",
+      "selection_version": "pcg64-class-permutation-v1",
+      "profile": {
+        "microbatch": 16,
+        "accumulation": 32,
+        "eval_batch": 32,
+        "gradient_checkpointing": false,
+        "precision": "fp32-amp-fp16",
+        "attention": "sdpa",
+        "tf32": false,
+        "workers": 0
+      },
+      "source_hash": "4ca93496c63526e795ffef0f07adae2fde7f44adfb555d86f548eb92fe7a1c58"
+    },
+    "runs": [
+      {
+        "run_id": "v2-lr-35c96c1a6ba5b6319643",
+        "stage": "lr_search",
+        "config": "LP",
+        "lr": 0.0001,
+        "seed": 142,
+        "executor": "rtx4070ti"
+      },
+      {
+        "run_id": "v2-lr-9d7dcac4e2983c332650",
+        "stage": "lr_search",
+        "config": "LP",
+        "lr": 0.001,
+        "seed": 142,
+        "executor": "rtx3090"
+      },
+      {
+        "run_id": "v2-lr-40e0eaef6b62f135aaf0",
+        "stage": "lr_search",
+        "config": "LP",
+        "lr": 0.01,
+        "seed": 142,
+        "executor": "rtx3060"
+      },
+      {
+        "run_id": "v2-lr-cb6795d95583de74183a",
+        "stage": "lr_search",
+        "config": "LP",
+        "lr": 0.03,
+        "seed": 142,
+        "executor": "rtx4070ti"
+      },
+      {
+        "run_id": "v2-lr-cc453e2bf68313943e53",
+        "stage": "lr_search",
+        "config": "A-iso",
+        "lr": 0.0001,
+        "seed": 142,
+        "executor": "rtx3060"
+      },
+      {
+        "run_id": "v2-lr-0d382943c7e7966b0093",
+        "stage": "lr_search",
+        "config": "A-iso",
+        "lr": 0.001,
+        "seed": 142,
+        "executor": "rtx4070ti"
+      },
+      {
+        "run_id": "v2-lr-aefe13515ddfeca183a0",
+        "stage": "lr_search",
+        "config": "A-iso",
+        "lr": 0.01,
+        "seed": 142,
+        "executor": "rtx3090"
+      },
+      {
+        "run_id": "v2-lr-f483172ac1246de68848",
+        "stage": "lr_search",
+        "config": "A-iso",
+        "lr": 0.03,
+        "seed": 142,
+        "executor": "rtx3060"
+      },
+      {
+        "run_id": "v2-lr-6cd6b0d3f4cf9f23a9ab",
+        "stage": "lr_search",
+        "config": "M-iso",
+        "lr": 0.0001,
+        "seed": 142,
+        "executor": "rtx3090"
+      },
+      {
+        "run_id": "v2-lr-df87a1abb72dc4bc8400",
+        "stage": "lr_search",
+        "config": "M-iso",
+        "lr": 0.001,
+        "seed": 142,
+        "executor": "rtx3060"
+      },
+      {
+        "run_id": "v2-lr-e5be14ec85d4cf78dd51",
+        "stage": "lr_search",
+        "config": "M-iso",
+        "lr": 0.01,
+        "seed": 142,
+        "executor": "rtx4070ti"
+      },
+      {
+        "run_id": "v2-lr-40df9fd484f173d051fe",
+        "stage": "lr_search",
+        "config": "M-iso",
+        "lr": 0.03,
+        "seed": 142,
+        "executor": "rtx3090"
+      },
+      {
+        "run_id": "v2-lr-41ada2ca7f5cfb30c94b",
+        "stage": "lr_search",
+        "config": "B-iso",
+        "lr": 0.0001,
+        "seed": 142,
+        "executor": "rtx4070ti"
+      },
+      {
+        "run_id": "v2-lr-e42329aa6b4a5ad9159c",
+        "stage": "lr_search",
+        "config": "B-iso",
+        "lr": 0.001,
+        "seed": 142,
+        "executor": "rtx3090"
+      },
+      {
+        "run_id": "v2-lr-d4e319d88068e43ddb24",
+        "stage": "lr_search",
+        "config": "B-iso",
+        "lr": 0.01,
+        "seed": 142,
+        "executor": "rtx3060"
+      },
+      {
+        "run_id": "v2-lr-72a2d3ae28d9044797ca",
+        "stage": "lr_search",
+        "config": "B-iso",
+        "lr": 0.03,
+        "seed": 142,
+        "executor": "rtx4070ti"
+      },
+      {
+        "run_id": "v2-lr-6c3a80b60d82f631f19f",
+        "stage": "lr_search",
+        "config": "A-16",
+        "lr": 0.0001,
+        "seed": 142,
+        "executor": "rtx3060"
+      },
+      {
+        "run_id": "v2-lr-345606eb3acc5b1c8505",
+        "stage": "lr_search",
+        "config": "A-16",
+        "lr": 0.001,
+        "seed": 142,
+        "executor": "rtx4070ti"
+      },
+      {
+        "run_id": "v2-lr-934afc83c7ef47bf7c8b",
+        "stage": "lr_search",
+        "config": "A-16",
+        "lr": 0.01,
+        "seed": 142,
+        "executor": "rtx3090"
+      },
+      {
+        "run_id": "v2-lr-a5a194ad8c2d4e3aa3fd",
+        "stage": "lr_search",
+        "config": "A-16",
+        "lr": 0.03,
+        "seed": 142,
+        "executor": "rtx3060"
+      },
+      {
+        "run_id": "v2-lr-75741ce7185c62be7ead",
+        "stage": "lr_search",
+        "config": "B-16",
+        "lr": 0.0001,
+        "seed": 142,
+        "executor": "rtx3090"
+      },
+      {
+        "run_id": "v2-lr-e2f0aac96f5c8c3170ad",
+        "stage": "lr_search",
+        "config": "B-16",
+        "lr": 0.001,
+        "seed": 142,
+        "executor": "rtx3060"
+      },
+      {
+        "run_id": "v2-lr-0acf33d327c13472fa58",
+        "stage": "lr_search",
+        "config": "B-16",
+        "lr": 0.01,
+        "seed": 142,
+        "executor": "rtx4070ti"
+      },
+      {
+        "run_id": "v2-lr-4f0e249072ad67e13db0",
+        "stage": "lr_search",
+        "config": "B-16",
+        "lr": 0.03,
+        "seed": 142,
+        "executor": "rtx3090"
+      }
+    ],
+    "plan_hash": "9bfefb8d4bf8eb298d43fc3f3c605a87f16006a0846f363b80d5b9341bc861cd"
+  },
+  "selection": {
+    "schema_version": 2,
+    "stage": "lr_selection",
+    "plan_hash": "9bfefb8d4bf8eb298d43fc3f3c605a87f16006a0846f363b80d5b9341bc861cd",
+    "selected": {
+      "LP": {
+        "lr": 0.01,
+        "run_id": "v2-lr-40e0eaef6b62f135aaf0",
+        "val_correct_count": 1615,
+        "val_sample_count": 2020,
+        "best_epoch": 7
+      },
+      "A-iso": {
+        "lr": 0.001,
+        "run_id": "v2-lr-0d382943c7e7966b0093",
+        "val_correct_count": 1643,
+        "val_sample_count": 2020,
+        "best_epoch": 10
+      },
+      "M-iso": {
+        "lr": 0.01,
+        "run_id": "v2-lr-e5be14ec85d4cf78dd51",
+        "val_correct_count": 1658,
+        "val_sample_count": 2020,
+        "best_epoch": 9
+      },
+      "B-iso": {
+        "lr": 0.001,
+        "run_id": "v2-lr-e42329aa6b4a5ad9159c",
+        "val_correct_count": 1666,
+        "val_sample_count": 2020,
+        "best_epoch": 10
+      },
+      "A-16": {
+        "lr": 0.01,
+        "run_id": "v2-lr-934afc83c7ef47bf7c8b",
+        "val_correct_count": 1651,
+        "val_sample_count": 2020,
+        "best_epoch": 10
+      },
+      "B-16": {
+        "lr": 0.001,
+        "run_id": "v2-lr-e2f0aac96f5c8c3170ad",
+        "val_correct_count": 1667,
+        "val_sample_count": 2020,
+        "best_epoch": 10
+      }
+    },
+    "trials": [
+      {
+        "run": {
+          "run_id": "v2-lr-0acf33d327c13472fa58",
+          "stage": "lr_search",
+          "config": "B-16",
+          "lr": 0.01,
+          "seed": 142,
+          "executor": "rtx4070ti"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.808910891089109,
+          "val_correct_count": 1634,
+          "val_sample_count": 2020,
+          "best_epoch": 9,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 1.6013748999976087,
+          "export_seconds": 0.006253600004129112,
+          "peak_allocated_gib": 2.3338418006896973,
+          "peak_reserved_gib": 2.533203125,
+          "wall_train_job_seconds": 1818.1242628999898,
+          "validation_seconds": 113.9996740000206,
+          "checkpoint_seconds": 1.0478960999898845,
+          "train_loop_residual_seconds": 1703.0766927999794,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "4d2cfa7d8b5e1db884d279003c75750a46b0c48df57b26fa25ff16bb2ff70728"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-0d382943c7e7966b0093",
+          "stage": "lr_search",
+          "config": "A-iso",
+          "lr": 0.001,
+          "seed": 142,
+          "executor": "rtx4070ti"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.8133663366336633,
+          "val_correct_count": 1643,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 3.228717799996957,
+          "export_seconds": 0.00669940000079805,
+          "peak_allocated_gib": 1.8455147743225098,
+          "peak_reserved_gib": 2.06640625,
+          "wall_train_job_seconds": 1519.5615325000035,
+          "validation_seconds": 97.8101758000048,
+          "checkpoint_seconds": 0.7621786999952747,
+          "train_loop_residual_seconds": 1420.9891780000034,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "8cb0ce4d9b81348c4b9fdf82d650bd81ff60e732b560b6d69055ddd447de66bd"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-345606eb3acc5b1c8505",
+          "stage": "lr_search",
+          "config": "A-16",
+          "lr": 0.001,
+          "seed": 142,
+          "executor": "rtx4070ti"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.806930693069307,
+          "val_correct_count": 1630,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 1.614056199992774,
+          "export_seconds": 0.006842900009360164,
+          "peak_allocated_gib": 1.8394265174865723,
+          "peak_reserved_gib": 2.0625,
+          "wall_train_job_seconds": 1577.5852861000021,
+          "validation_seconds": 101.94678169998224,
+          "checkpoint_seconds": 0.7812367000151426,
+          "train_loop_residual_seconds": 1474.8572677000047,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "baeac374b9f960ef82690f33dd2872210dbde10157de824853ffec405d536936"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-35c96c1a6ba5b6319643",
+          "stage": "lr_search",
+          "config": "LP",
+          "lr": 0.0001,
+          "seed": 142,
+          "executor": "rtx4070ti"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.6618811881188119,
+          "val_correct_count": 1337,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 1.7250658000048134,
+          "export_seconds": 0.003434999998717103,
+          "peak_allocated_gib": 0.911226749420166,
+          "peak_reserved_gib": 1.07421875,
+          "wall_train_job_seconds": 1016.5923800000019,
+          "validation_seconds": 97.82508529999905,
+          "checkpoint_seconds": 3.171301800008223,
+          "train_loop_residual_seconds": 915.5959928999946,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "3694508ead56e112ac639b33c44e0be3adcbc8adf52ae5f854c517534ae34889"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-40df9fd484f173d051fe",
+          "stage": "lr_search",
+          "config": "M-iso",
+          "lr": 0.03,
+          "seed": 142,
+          "executor": "rtx3090"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "numerical_invalid",
+          "reason": "Nonfinite forward logits"
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": null,
+          "val_correct_count": null,
+          "val_sample_count": null,
+          "best_epoch": null,
+          "epochs_completed": 0,
+          "global_step": 23,
+          "setup_seconds": 0.7551189289997637,
+          "export_seconds": 0,
+          "peak_allocated_gib": 1.956860065460205,
+          "peak_reserved_gib": 2.017578125,
+          "wall_train_job_seconds": 61.89922954099984,
+          "validation_seconds": 0,
+          "checkpoint_seconds": 0,
+          "train_loop_residual_seconds": 61.89922954099984,
+          "attempted_steps": 23,
+          "applied_steps": 22,
+          "skipped_steps": 1
+        },
+        "checksums_sha256": "7edf5364eb14d1027d37ec1ef503e173a1804a044996e0921cc1e747e8cafb74"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-40e0eaef6b62f135aaf0",
+          "stage": "lr_search",
+          "config": "LP",
+          "lr": 0.01,
+          "seed": 142,
+          "executor": "rtx3060"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.7995049504950495,
+          "val_correct_count": 1615,
+          "val_sample_count": 2020,
+          "best_epoch": 7,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 0.7067766149993986,
+          "export_seconds": 0.0011926400002266746,
+          "peak_allocated_gib": 0.911226749420166,
+          "peak_reserved_gib": 1.07421875,
+          "wall_train_job_seconds": 955.6387958989999,
+          "validation_seconds": 96.55671000400253,
+          "checkpoint_seconds": 3.0423121909952897,
+          "train_loop_residual_seconds": 856.0397737040021,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "b19bf1852b0d5b1dbc663d2bfe5e3df1e3d7c58fe99730983870edec239afc06"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-41ada2ca7f5cfb30c94b",
+          "stage": "lr_search",
+          "config": "B-iso",
+          "lr": 0.0001,
+          "seed": 142,
+          "executor": "rtx4070ti"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.6702970297029703,
+          "val_correct_count": 1354,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 1.2637950999996974,
+          "export_seconds": 0.006869999997434206,
+          "peak_allocated_gib": 2.3112854957580566,
+          "peak_reserved_gib": 2.515625,
+          "wall_train_job_seconds": 1591.2982641999988,
+          "validation_seconds": 97.12308760001906,
+          "checkpoint_seconds": 0.7533106000046246,
+          "train_loop_residual_seconds": 1493.4218659999751,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "997ac6d4bdb97582920231d5c814d2f21a0dccc5911ff3e13a727266222c5de0"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-4f0e249072ad67e13db0",
+          "stage": "lr_search",
+          "config": "B-16",
+          "lr": 0.03,
+          "seed": 142,
+          "executor": "rtx3090"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "numerical_invalid",
+          "reason": "Nonfinite forward logits"
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": null,
+          "val_correct_count": null,
+          "val_sample_count": null,
+          "best_epoch": null,
+          "epochs_completed": 0,
+          "global_step": 15,
+          "setup_seconds": 0.7914265850004085,
+          "export_seconds": 0,
+          "peak_allocated_gib": 2.3336243629455566,
+          "peak_reserved_gib": 2.435546875,
+          "wall_train_job_seconds": 47.63709137099977,
+          "validation_seconds": 0,
+          "checkpoint_seconds": 0,
+          "train_loop_residual_seconds": 47.63709137099977,
+          "attempted_steps": 15,
+          "applied_steps": 15,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "fa506f1072f5935d6260fa27b8f5b58a83e39a650d8160b308e750e8e1e11784"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-6c3a80b60d82f631f19f",
+          "stage": "lr_search",
+          "config": "A-16",
+          "lr": 0.0001,
+          "seed": 142,
+          "executor": "rtx3060"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.6717821782178218,
+          "val_correct_count": 1357,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 0.9641724499997508,
+          "export_seconds": 0.0013686580023204442,
+          "peak_allocated_gib": 1.8392090797424316,
+          "peak_reserved_gib": 2.0625,
+          "wall_train_job_seconds": 1722.5676882890002,
+          "validation_seconds": 103.36949194000044,
+          "checkpoint_seconds": 0.32943904099738575,
+          "train_loop_residual_seconds": 1618.8687573080024,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "816bfda7d9c975e0333a980d47e721faadbb87454c5eefc4cb14ba0a66b19ba6"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-6cd6b0d3f4cf9f23a9ab",
+          "stage": "lr_search",
+          "config": "M-iso",
+          "lr": 0.0001,
+          "seed": 142,
+          "executor": "rtx3090"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.6673267326732674,
+          "val_correct_count": 1348,
+          "val_sample_count": 2020,
+          "best_epoch": 8,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 0.9860609229999682,
+          "export_seconds": 0.0011552739997569006,
+          "peak_allocated_gib": 1.956860065460205,
+          "peak_reserved_gib": 2.09375,
+          "wall_train_job_seconds": 1297.4300346739997,
+          "validation_seconds": 89.25922269900047,
+          "checkpoint_seconds": 0.2852194259994576,
+          "train_loop_residual_seconds": 1207.8855925489997,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "d6ec3ecf1d2d0d29a51936662bdb0e8ff24bcda08ddeb6f47b0ba8ce58ded8d5"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-72a2d3ae28d9044797ca",
+          "stage": "lr_search",
+          "config": "B-iso",
+          "lr": 0.03,
+          "seed": 142,
+          "executor": "rtx4070ti"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "numerical_invalid",
+          "reason": "Nonfinite forward logits"
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": null,
+          "val_correct_count": null,
+          "val_sample_count": null,
+          "best_epoch": null,
+          "epochs_completed": 0,
+          "global_step": 25,
+          "setup_seconds": 1.1723074999899836,
+          "export_seconds": 0,
+          "peak_allocated_gib": 2.3112854957580566,
+          "peak_reserved_gib": 2.412109375,
+          "wall_train_job_seconds": 88.20383110000694,
+          "validation_seconds": 0,
+          "checkpoint_seconds": 0,
+          "train_loop_residual_seconds": 88.20383110000694,
+          "attempted_steps": 25,
+          "applied_steps": 25,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "709fe9fd052bb2022e5bec9d79b19f93d13868e47792cf3e98222610487b4dc3"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-75741ce7185c62be7ead",
+          "stage": "lr_search",
+          "config": "B-16",
+          "lr": 0.0001,
+          "seed": 142,
+          "executor": "rtx3090"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.6608910891089109,
+          "val_correct_count": 1335,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 0.8210902419996273,
+          "export_seconds": 0.0026164020000578603,
+          "peak_allocated_gib": 2.3336243629455566,
+          "peak_reserved_gib": 2.533203125,
+          "wall_train_job_seconds": 1172.0187525299998,
+          "validation_seconds": 75.78539238700068,
+          "checkpoint_seconds": 0.4274750430013228,
+          "train_loop_residual_seconds": 1095.8058850999978,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "63524539d542344ae554da0b6b96c5bc2f641ba7ccf218d3e8ca7e8786199df4"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-934afc83c7ef47bf7c8b",
+          "stage": "lr_search",
+          "config": "A-16",
+          "lr": 0.01,
+          "seed": 142,
+          "executor": "rtx3090"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.8173267326732673,
+          "val_correct_count": 1651,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 0.6996258420003869,
+          "export_seconds": 0.000979210999503266,
+          "peak_allocated_gib": 1.8392090797424316,
+          "peak_reserved_gib": 2.0625,
+          "wall_train_job_seconds": 987.921539637,
+          "validation_seconds": 66.99287264499799,
+          "checkpoint_seconds": 0.3058671520011558,
+          "train_loop_residual_seconds": 920.6227998400009,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "84db2b5c9aa9482eced5a9bf9a276c687d10775876f91abf1999f70c8dbe7045"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-9d7dcac4e2983c332650",
+          "stage": "lr_search",
+          "config": "LP",
+          "lr": 0.001,
+          "seed": 142,
+          "executor": "rtx3090"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.75,
+          "val_correct_count": 1515,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 0.6628493010000511,
+          "export_seconds": 0.0010745029999270628,
+          "peak_allocated_gib": 0.911226749420166,
+          "peak_reserved_gib": 1.07421875,
+          "wall_train_job_seconds": 650.237274135,
+          "validation_seconds": 65.35291246099996,
+          "checkpoint_seconds": 1.7818060399997648,
+          "train_loop_residual_seconds": 583.1025556340003,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "2a76fe89b12a9f9c6099bfe9c872639b60ec71f0f64cebebb3f426299ab27644"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-a5a194ad8c2d4e3aa3fd",
+          "stage": "lr_search",
+          "config": "A-16",
+          "lr": 0.03,
+          "seed": 142,
+          "executor": "rtx3060"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "numerical_invalid",
+          "reason": "Nonfinite forward logits"
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": null,
+          "val_correct_count": null,
+          "val_sample_count": null,
+          "best_epoch": null,
+          "epochs_completed": 1,
+          "global_step": 38,
+          "setup_seconds": 0.9731884409993654,
+          "export_seconds": 0,
+          "peak_allocated_gib": 1.8391633033752441,
+          "peak_reserved_gib": 2.0625,
+          "wall_train_job_seconds": 189.84558613899935,
+          "validation_seconds": 10.905198551998183,
+          "checkpoint_seconds": 0.04449880800166284,
+          "train_loop_residual_seconds": 178.8958887789995,
+          "attempted_steps": 38,
+          "applied_steps": 37,
+          "skipped_steps": 1
+        },
+        "checksums_sha256": "95c360bfa92b13db059a821bf3ba818c8a0f704ccdd0f8b676815bde84d49128"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-aefe13515ddfeca183a0",
+          "stage": "lr_search",
+          "config": "A-iso",
+          "lr": 0.01,
+          "seed": 142,
+          "executor": "rtx3090"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.802970297029703,
+          "val_correct_count": 1622,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 1.0618298329998197,
+          "export_seconds": 0.0013587960002041655,
+          "peak_allocated_gib": 1.8452973365783691,
+          "peak_reserved_gib": 2.06640625,
+          "wall_train_job_seconds": 1510.035926171,
+          "validation_seconds": 100.69769672900088,
+          "checkpoint_seconds": 0.35659950299941556,
+          "train_loop_residual_seconds": 1408.9816299389997,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "93aa0b24fd74e08d687e01915a382831f7b7c925242d8a50cbfb95af9248403a"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-cb6795d95583de74183a",
+          "stage": "lr_search",
+          "config": "LP",
+          "lr": 0.03,
+          "seed": 142,
+          "executor": "rtx4070ti"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.7955445544554456,
+          "val_correct_count": 1607,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 1.411316000005172,
+          "export_seconds": 0.0030807999937678687,
+          "peak_allocated_gib": 0.911226749420166,
+          "peak_reserved_gib": 1.07421875,
+          "wall_train_job_seconds": 952.285710600001,
+          "validation_seconds": 90.10014349999256,
+          "checkpoint_seconds": 3.060332799999742,
+          "train_loop_residual_seconds": 859.1252343000087,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "1548ca930c764d84315876d9711183d40667b63152031f5e38de0b207a4e6e34"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-cc453e2bf68313943e53",
+          "stage": "lr_search",
+          "config": "A-iso",
+          "lr": 0.0001,
+          "seed": 142,
+          "executor": "rtx3060"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.6668316831683169,
+          "val_correct_count": 1347,
+          "val_sample_count": 2020,
+          "best_epoch": 8,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 1.0518687809999392,
+          "export_seconds": 0.001812962000258267,
+          "peak_allocated_gib": 1.8452973365783691,
+          "peak_reserved_gib": 2.06640625,
+          "wall_train_job_seconds": 1748.6634950200005,
+          "validation_seconds": 106.6621253559988,
+          "checkpoint_seconds": 0.35800756600110617,
+          "train_loop_residual_seconds": 1641.6433620980006,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "7d6996d02cbbee97a9f99f24e71bb06bbf706eb1d86da681b92f5c7378b487df"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-d4e319d88068e43ddb24",
+          "stage": "lr_search",
+          "config": "B-iso",
+          "lr": 0.01,
+          "seed": 142,
+          "executor": "rtx3060"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.8173267326732673,
+          "val_correct_count": 1651,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 0.9801645099996676,
+          "export_seconds": 0.001668123999479576,
+          "peak_allocated_gib": 2.312605381011963,
+          "peak_reserved_gib": 2.537109375,
+          "wall_train_job_seconds": 2146.0401442170005,
+          "validation_seconds": 118.51391261699791,
+          "checkpoint_seconds": 0.4059535170017625,
+          "train_loop_residual_seconds": 2027.1202780830008,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "debd51dc1763bb2f02344e9d895036a0b7751576de5121ed945eedef91787752"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-df87a1abb72dc4bc8400",
+          "stage": "lr_search",
+          "config": "M-iso",
+          "lr": 0.001,
+          "seed": 142,
+          "executor": "rtx3060"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.8178217821782178,
+          "val_correct_count": 1652,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 0.9301787320000585,
+          "export_seconds": 0.0016003490000002785,
+          "peak_allocated_gib": 1.956860065460205,
+          "peak_reserved_gib": 2.09375,
+          "wall_train_job_seconds": 1786.4144361929993,
+          "validation_seconds": 109.18556697100212,
+          "checkpoint_seconds": 0.27101033499820915,
+          "train_loop_residual_seconds": 1676.957858886999,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "7d289b3d064143713fec340a801fce437cc437649937d80d55e9410f4b240c59"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-e2f0aac96f5c8c3170ad",
+          "stage": "lr_search",
+          "config": "B-16",
+          "lr": 0.001,
+          "seed": 142,
+          "executor": "rtx3060"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.8252475247524752,
+          "val_correct_count": 1667,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 0.9722431870031869,
+          "export_seconds": 0.0030012080023880117,
+          "peak_allocated_gib": 2.3351616859436035,
+          "peak_reserved_gib": 2.552734375,
+          "wall_train_job_seconds": 2144.738068335002,
+          "validation_seconds": 119.54037763300221,
+          "checkpoint_seconds": 0.47438683500513434,
+          "train_loop_residual_seconds": 2024.7233038669947,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "7f4a16c636c6870f360122264d1c4b3f643adfc38029ca21c808512f55c0e218"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-e42329aa6b4a5ad9159c",
+          "stage": "lr_search",
+          "config": "B-iso",
+          "lr": 0.001,
+          "seed": 142,
+          "executor": "rtx3090"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.8247524752475247,
+          "val_correct_count": 1666,
+          "val_sample_count": 2020,
+          "best_epoch": 10,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 0.7898124760004066,
+          "export_seconds": 0.0011332029998811777,
+          "peak_allocated_gib": 2.311068058013916,
+          "peak_reserved_gib": 2.515625,
+          "wall_train_job_seconds": 1181.1947540050005,
+          "validation_seconds": 77.57863301500038,
+          "checkpoint_seconds": 0.3743582749993948,
+          "train_loop_residual_seconds": 1103.2417627150007,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "f18ef5426647e09faeff5fba8c68f276485e5d68e1dc941873c9b354be5a5c56"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-e5be14ec85d4cf78dd51",
+          "stage": "lr_search",
+          "config": "M-iso",
+          "lr": 0.01,
+          "seed": 142,
+          "executor": "rtx4070ti"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "valid",
+          "reason": null
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": 0.8207920792079207,
+          "val_correct_count": 1658,
+          "val_sample_count": 2020,
+          "best_epoch": 9,
+          "epochs_completed": 10,
+          "global_step": 360,
+          "setup_seconds": 1.471212899996317,
+          "export_seconds": 0.006016899998940062,
+          "peak_allocated_gib": 1.9629225730895996,
+          "peak_reserved_gib": 2.09375,
+          "wall_train_job_seconds": 1553.8029583000025,
+          "validation_seconds": 110.17279419998522,
+          "checkpoint_seconds": 0.6229586999979801,
+          "train_loop_residual_seconds": 1443.0072054000193,
+          "attempted_steps": 360,
+          "applied_steps": 360,
+          "skipped_steps": 0
+        },
+        "checksums_sha256": "9a2ac8131b69a738068306ffa62fe59845080c9a5cc313b2cf97c42a7dc46e64"
+      },
+      {
+        "run": {
+          "run_id": "v2-lr-f483172ac1246de68848",
+          "stage": "lr_search",
+          "config": "A-iso",
+          "lr": 0.03,
+          "seed": 142,
+          "executor": "rtx3060"
+        },
+        "status": {
+          "schema_version": 2,
+          "stage": "lr_search",
+          "action": "train",
+          "status": "numerical_invalid",
+          "reason": "Nonfinite forward logits"
+        },
+        "metrics": {
+          "test_accuracy": null,
+          "test_correct_count": null,
+          "test_sample_count": null,
+          "val_accuracy": null,
+          "val_correct_count": null,
+          "val_sample_count": null,
+          "best_epoch": null,
+          "epochs_completed": 2,
+          "global_step": 97,
+          "setup_seconds": 1.0028484989998105,
+          "export_seconds": 0,
+          "peak_allocated_gib": 1.8452973365783691,
+          "peak_reserved_gib": 2.06640625,
+          "wall_train_job_seconds": 474.9785225529995,
+          "validation_seconds": 21.704302726000606,
+          "checkpoint_seconds": 0.07355825000013283,
+          "train_loop_residual_seconds": 453.20066157699875,
+          "attempted_steps": 97,
+          "applied_steps": 85,
+          "skipped_steps": 12
+        },
+        "checksums_sha256": "baedacb477213828f9db1e675a6b0cbfe3acc13cbcf2d236290f889734534d26"
+      }
+    ]
+  },
+  "selection_hash": "fff58b4e912cd80c0d75292179da6a18c74f506650a8857aac30b100ad218971",
+  "runs": [
+    {
+      "run_id": "v2-final-be0bcb1fdc0e993288d4",
+      "stage": "final",
+      "config": "LP",
+      "lr": 0.01,
+      "seed": 42,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-final-87952f0f48f1d3382cfd",
+      "stage": "final",
+      "config": "A-iso",
+      "lr": 0.001,
+      "seed": 42,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-final-ba24112b9e10215c9d3e",
+      "stage": "final",
+      "config": "M-iso",
+      "lr": 0.01,
+      "seed": 42,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-final-1ed3d0069fe6265b2dde",
+      "stage": "final",
+      "config": "B-iso",
+      "lr": 0.001,
+      "seed": 42,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-final-3eba951255f3ae75961e",
+      "stage": "final",
+      "config": "A-16",
+      "lr": 0.01,
+      "seed": 42,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-final-0ca5eb03510f80fc94fc",
+      "stage": "final",
+      "config": "B-16",
+      "lr": 0.001,
+      "seed": 42,
+      "executor": "rtx4070ti"
+    },
+    {
+      "run_id": "v2-final-0040bb6b52f637921ba8",
+      "stage": "final",
+      "config": "A-iso",
+      "lr": 0.001,
+      "seed": 43,
+      "executor": "rtx3090"
+    },
+    {
+      "run_id": "v2-final-fa6de9701fa4bf4da3e7",
+      "stage": "final",
+      "config": "M-iso",
+      "lr": 0.01,
+      "seed": 43,
+      "executor": "rtx3090"
+    },
+    {
+      "run_id": "v2-final-c068b4c47d6d6e8e9179",
+      "stage": "final",
+      "config": "B-iso",
+      "lr": 0.001,
+      "seed": 43,
+      "executor": "rtx3090"
+    },
+    {
+      "run_id": "v2-final-d70a42922ce70d03e123",
+      "stage": "final",
+      "config": "A-16",
+      "lr": 0.01,
+      "seed": 43,
+      "executor": "rtx3090"
+    },
+    {
+      "run_id": "v2-final-cb6891115de77384e746",
+      "stage": "final",
+      "config": "B-16",
+      "lr": 0.001,
+      "seed": 43,
+      "executor": "rtx3090"
+    },
+    {
+      "run_id": "v2-final-cb766869907ab346bf0e",
+      "stage": "final",
+      "config": "LP",
+      "lr": 0.01,
+      "seed": 43,
+      "executor": "rtx3090"
+    },
+    {
+      "run_id": "v2-final-d30d70cf62f2b99fa332",
+      "stage": "final",
+      "config": "M-iso",
+      "lr": 0.01,
+      "seed": 44,
+      "executor": "rtx3060"
+    },
+    {
+      "run_id": "v2-final-6b4c4c151cf01dcdd402",
+      "stage": "final",
+      "config": "B-iso",
+      "lr": 0.001,
+      "seed": 44,
+      "executor": "rtx3060"
+    },
+    {
+      "run_id": "v2-final-a6ecd5c1525f91d12d8c",
+      "stage": "final",
+      "config": "A-16",
+      "lr": 0.01,
+      "seed": 44,
+      "executor": "rtx3060"
+    },
+    {
+      "run_id": "v2-final-6c46ab5657f9a7d2f24b",
+      "stage": "final",
+      "config": "B-16",
+      "lr": 0.001,
+      "seed": 44,
+      "executor": "rtx3060"
+    },
+    {
+      "run_id": "v2-final-e1a57665628dd8a573da",
+      "stage": "final",
+      "config": "LP",
+      "lr": 0.01,
+      "seed": 44,
+      "executor": "rtx3060"
+    },
+    {
+      "run_id": "v2-final-8f9aad7513dcb8a296cf",
+      "stage": "final",
+      "config": "A-iso",
+      "lr": 0.001,
+      "seed": 44,
+      "executor": "rtx3060"
+    }
+  ],
+  "plan_hash": "ba2bad270be6123061f477f837a0d5afa433ef704976fca5124624144b9f8988"
+}
